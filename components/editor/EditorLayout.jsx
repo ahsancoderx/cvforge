@@ -1,3 +1,4 @@
+// components/editor/EditorLayout.jsx
 'use client';
 import { Box, useMediaQuery } from '@mui/material';
 import { useState, useEffect } from 'react';

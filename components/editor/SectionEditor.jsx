@@ -1,3 +1,4 @@
+//components/editor/SectionEditor.jsx
 'use client';
 import { Box, TextField, Typography, Button, MenuItem, Select, Chip } from '@mui/material';
 import { useRef } from 'react';
@@ -224,15 +225,18 @@ function PersonalSection({ personal, updatePersonal }) {
 /* ── Main SectionEditor export ───────────────────────── */
 
 export default function SectionEditor({ section, resume, handlers }) {
+  // Destructure ALL handlers explicitly — including addLanguage
   const {
     updatePersonal, updateSummary,
     addExperience, updateExperience, removeExperience,
-    addEducation, updateEducation, removeEducation,
+    addEducation,  updateEducation,  removeEducation,
     addSkill, removeSkill,
-    addProject, updateProject, removeProject,
+    addProject,    updateProject,    removeProject,
     addCertification, updateCertification, removeCertification,
-    addLanguage, updateLanguage, removeLanguage,
+    addLanguage,   updateLanguage,   removeLanguage,   // ← these must be here
   } = handlers;
+
+  // ... rest of the component stays the same
 
   /* ── Personal ── */
   if (section === 'personal') return (
@@ -356,30 +360,16 @@ export default function SectionEditor({ section, resume, handlers }) {
   /* ── Languages ── */
   if (section === 'languages') return (
     <Box sx={{ p: 2 }}>
-      <Typography sx={{ fontSize: '0.72rem', color: '#8b8fa8', mb: 1.5, lineHeight: 1.6 }}>
+      <Typography sx={{ fontSize:'0.72rem', color:'#8b8fa8', mb:1.5, lineHeight:1.6 }}>
         Add languages you speak and your proficiency level.
       </Typography>
-
-      {/* Proficiency legend */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1.5 }}>
-        {[
-          { level: 'Native',       color: '#22c55e' },
-          { level: 'Fluent',       color: '#60a5fa' },
-          { level: 'Advanced',     color: '#a78bfa' },
-          { level: 'Intermediate', color: '#f59e0b' },
-          { level: 'Basic',        color: '#f87171' },
-        ].map((l) => (
-          <Chip
-            key={l.level}
-            label={l.level}
-            size="small"
-            sx={{
-              fontSize: '0.62rem', height: 18,
-              background: `${l.color}15`,
-              color: l.color,
-              border: `1px solid ${l.color}40`,
-            }}
-          />
+      <Box sx={{ display:'flex', flexWrap:'wrap', gap:0.5, mb:1.5 }}>
+        {['Native','Fluent','Advanced','Intermediate','Basic'].map(lv => (
+          <Chip key={lv} label={lv} size="small" sx={{
+            fontSize:'0.62rem', height:18,
+            background:'rgba(167,139,250,0.1)', color:'#a78bfa',
+            border:'1px solid rgba(167,139,250,0.3)',
+          }} />
         ))}
       </Box>
 
@@ -394,45 +384,34 @@ export default function SectionEditor({ section, resume, handlers }) {
             label="Language"
             value={l.name}
             onChange={(v) => updateLanguage(l.id, 'name', v)}
-            placeholder="e.g. English, Urdu, Arabic"
+            placeholder="English, Urdu, Arabic..."
           />
-          <Box sx={{ mb: 0.5 }}>
+          <Box sx={{ mb:0.5 }}>
             <Label>Proficiency Level</Label>
             <Select
-              fullWidth
-              size="small"
+              fullWidth size="small"
               value={l.level || 'Conversational'}
               onChange={(e) => updateLanguage(l.id, 'level', e.target.value)}
               sx={{
-                fontSize: '0.83rem',
-                background: '#1a1d27',
-                color: '#f0f0f8',
-                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.1)' },
-                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(108,99,255,0.4)' },
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#6c63ff' },
-                '& .MuiSelect-select': { py: '6px' },
+                fontSize:'0.83rem', background:'#1a1d27', color:'#f0f0f8',
+                '& .MuiOutlinedInput-notchedOutline':{ borderColor:'rgba(255,255,255,0.1)' },
+                '&:hover .MuiOutlinedInput-notchedOutline':{ borderColor:'rgba(108,99,255,0.4)' },
+                '& .MuiSelect-select':{ py:'6px' },
               }}
             >
-              {['Native', 'Fluent', 'Advanced', 'Intermediate', 'Basic', 'Conversational'].map((lv) => (
-                <MenuItem key={lv} value={lv} sx={{ fontSize: '0.83rem' }}>{lv}</MenuItem>
+              {['Native','Fluent','Advanced','Intermediate','Basic','Conversational'].map(lv => (
+                <MenuItem key={lv} value={lv} sx={{ fontSize:'0.83rem' }}>{lv}</MenuItem>
               ))}
             </Select>
           </Box>
         </BlockCard>
       ))}
 
-      <AddBtn
-        onClick={() => {
-          if (typeof addLanguage === 'function') {
-            addLanguage();
-          } else {
-            console.warn('addLanguage handler not found in handlers');
-          }
-        }}
-        label="Add Language"
-      />
+      {/* FIXED: call addLanguage directly — it's now properly destructured above */}
+      <AddBtn onClick={addLanguage} label="Add Language" />
     </Box>
   );
+  
 
   return null;
 }

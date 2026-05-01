@@ -1,5 +1,25 @@
+//components/template/AllTemplates.js
 'use client';
+// Add this helper at the TOP of AllTemplates.js (after imports)
 
+function PhotoCircle({ photo, size = 100, border = '4px solid #4a1942', bg = '#f5eef4', accentFill = '#7c3a6e' }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%',
+      border, background: bg,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      overflow: 'hidden', flexShrink: 0,
+    }}>
+      {photo
+        ? <img src={photo} alt="Profile" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+        : <svg viewBox="0 0 40 40" width={size*0.55} height={size*0.55} fill={accentFill}>
+            <circle cx="20" cy="14" r="8"/>
+            <ellipse cx="20" cy="30" rx="13" ry="8"/>
+          </svg>
+      }
+    </div>
+  );
+}
 /* ── shared helpers ─────────────────────────────── */
 function SecMin({ children, accent }) {
   return <div style={{ fontSize:9, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase',
@@ -521,6 +541,7 @@ export function CrimsonTemplate({ resume }) {
       </div>
     </div>
   );
+
 }
 
 /* ─────────────────────────────────────────────────
@@ -585,6 +606,141 @@ export function ForestTemplate({ resume }) {
           </>}
         </div>
       </div>
+    </div>
+  );
+  
+}
+// Add to AllTemplates.js
+
+export function NavyaTemplate({ resume }) {
+  const { personal:p, summary, experience, education, skills, projects, certifications, languages, sections } = resume;
+  const contact = [p.email && `📧 ${p.email}`, p.phone && `📱 ${p.phone}`, p.linkedin && `🔗 LinkedIn`].filter(Boolean);
+
+  function Sec({ title, children }) {
+    return (
+      <div style={{ marginBottom:16 }}>
+        <div style={{ fontSize:13, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em',
+          borderBottom:'1.5px solid #1a1a2e', paddingBottom:3, marginBottom:8, color:'#1a1a2e' }}>{title}</div>
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ fontFamily:'"DM Sans",sans-serif', background:'#fff', color:'#1a1a2e', padding:'32px 44px', minHeight:1056 }}>
+      {/* Header - centered like Navya template */}
+      {sections.personal && (
+        <div style={{ textAlign:'center', borderBottom:'2px solid #1a1a2e', paddingBottom:14, marginBottom:18 }}>
+          <div style={{ fontSize:26, fontWeight:700, letterSpacing:'0.04em', textTransform:'uppercase' }}>{p.name}</div>
+          <div style={{ fontSize:12, color:'#555', margin:'5px 0', letterSpacing:'0.06em' }}>{p.title}</div>
+          <div style={{ display:'flex', justifyContent:'center', gap:14, flexWrap:'wrap', fontSize:11, color:'#444', marginTop:6 }}>
+            {p.phone && <span>📱 {p.phone}</span>}
+            {p.email && <span>📧 {p.email}</span>}
+            {p.linkedin && <a href={`https://${p.linkedin}`} style={{ color:'#1a1a2e' }}>🔗 LinkedIn</a>}
+          </div>
+        </div>
+      )}
+
+      {sections.summary && summary && (
+        <Sec title="Summary">
+          <p style={{ fontSize:12, color:'#333', lineHeight:1.7, margin:0 }}>{summary}</p>
+        </Sec>
+      )}
+
+      {sections.skills && skills?.length > 0 && (
+        <Sec title="Technical Skills">
+          <div style={{ fontSize:12, color:'#333', lineHeight:1.8 }}>
+            {/* Group skills in rows like the reference */}
+            {skills.map((s, i) => (
+              <span key={i}>
+                <span style={{ fontWeight:600 }}>{s}</span>
+                {i < skills.length - 1 && <span style={{ color:'#999', margin:'0 6px' }}>·</span>}
+              </span>
+            ))}
+          </div>
+        </Sec>
+      )}
+
+      {sections.education && education?.length > 0 && (
+        <Sec title="Education">
+          {education.map(e => (
+            <div key={e.id} style={{ marginBottom:10 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
+                <b style={{ fontSize:12.5 }}>{e.school}</b>
+                <span style={{ fontSize:11, color:'#555' }}>{e.location || ''}</span>
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between' }}>
+                <span style={{ fontSize:12, fontStyle:'italic', color:'#333' }}>{e.degree}</span>
+                <span style={{ fontSize:11, color:'#555' }}>{e.date}</span>
+              </div>
+              {e.desc && <div style={{ fontSize:11, color:'#555', marginTop:2 }}>{e.desc}</div>}
+            </div>
+          ))}
+        </Sec>
+      )}
+
+      {sections.projects && projects?.length > 0 && (
+        <Sec title="Projects">
+          {projects.map(proj => (
+            <div key={proj.id} style={{ marginBottom:12 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
+                <b style={{ fontSize:12.5 }}>{proj.name}</b>
+                {proj.link && <a href={`https://${proj.link}`} style={{ fontSize:11, color:'#333' }}>GitHub</a>}
+              </div>
+              <div style={{ fontSize:11, color:'#555', fontStyle:'italic', marginBottom:3 }}>{proj.tech || ''}</div>
+              {proj.desc && proj.desc.split('.').filter(Boolean).map((pt, i) => (
+                <div key={i} style={{ fontSize:11.5, color:'#333', lineHeight:1.6, paddingLeft:12 }}>
+                  · {pt.trim()}.
+                </div>
+              ))}
+            </div>
+          ))}
+        </Sec>
+      )}
+
+      {sections.experience && experience?.length > 0 && (
+        <Sec title="Work Experience">
+          {experience.map(e => (
+            <div key={e.id} style={{ marginBottom:12 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
+                <b style={{ fontSize:12.5 }}>{e.role}</b>
+                <span style={{ fontSize:11, color:'#555' }}>{e.date}</span>
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between' }}>
+                <span style={{ fontSize:12, fontStyle:'italic', color:'#333' }}>{e.company}</span>
+              </div>
+              {e.desc && e.desc.split('.').filter(d => d.trim()).map((pt, i) => (
+                <div key={i} style={{ fontSize:11.5, color:'#333', paddingLeft:12, lineHeight:1.6 }}>· {pt.trim()}.</div>
+              ))}
+            </div>
+          ))}
+        </Sec>
+      )}
+
+      {sections.certifications && certifications?.length > 0 && (
+        <Sec title="Certifications">
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px 24px' }}>
+            {certifications.map(c => (
+              <div key={c.id} style={{ display:'flex', justifyContent:'space-between', fontSize:11.5 }}>
+                <span style={{ color:'#333' }}>{c.name}</span>
+                <span style={{ color:'#555' }}>{c.org}</span>
+              </div>
+            ))}
+          </div>
+        </Sec>
+      )}
+
+      {sections.languages && languages?.length > 0 && (
+        <Sec title="Languages">
+          <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
+            {languages.map(l => (
+              <span key={l.id} style={{ fontSize:12 }}>
+                <b>{l.name}</b> <span style={{ color:'#6b7280', fontSize:11 }}>{l.level}</span>
+              </span>
+            ))}
+          </div>
+        </Sec>
+      )}
     </div>
   );
 }

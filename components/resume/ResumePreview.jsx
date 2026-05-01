@@ -1,8 +1,16 @@
 'use client';
 import {
-  MinimalTemplate, CorporateTemplate, CreativeTemplate, TechTemplate,
-  PurpleTemplate, SlateTemplate, MarineTemplate, CrimsonTemplate, ForestTemplate
-} from '../template/AllTemplates';
+  MinimalTemplate,
+  CorporateTemplate,
+  CreativeTemplate,
+  TechTemplate,
+  PurpleTemplate,
+  SlateTemplate,
+  MarineTemplate,
+  CrimsonTemplate,
+  ForestTemplate,
+  NavyaTemplate,     
+} from '../template/AllTemplates';   // ← correct path: templates (with s)
 
 const MAP = {
   minimal:   MinimalTemplate,
@@ -14,12 +22,18 @@ const MAP = {
   marine:    MarineTemplate,
   crimson:   CrimsonTemplate,
   forest:    ForestTemplate,
+  navya:     NavyaTemplate,
 };
 
 export default function ResumePreview({ resume }) {
   const Template = MAP[resume.template] || MinimalTemplate;
   return (
-    <div style={{ width:680, minHeight:880, boxShadow:'0 20px 80px rgba(0,0,0,0.5)', borderRadius:4, overflow:'hidden', background:'#fff' }}>
+    <div style={{
+      width: 794,
+      minHeight: 1123,
+      background: '#fff',
+      overflow: 'hidden',
+    }}>
       <Template resume={resume} />
     </div>
   );

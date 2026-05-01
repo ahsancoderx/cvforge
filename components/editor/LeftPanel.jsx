@@ -1,3 +1,4 @@
+// components/editor/LeftPanel
 'use client';
 import { Box, Typography, Button, Select, MenuItem, Tooltip, Chip } from '@mui/material';
 import { useState } from 'react';
@@ -87,6 +88,7 @@ export default function LeftPanel({ resume, handlers, onDownloadClick, isMobile 
   { value:'marine',    label:'Marine Blue' },
   { value:'crimson',   label:'Crimson Pro' },
   { value:'forest',    label:'Forest Green' },
+  { value: 'navya',     label: 'Navya Classic' },
 ].map(t => <MenuItem key={t.value} value={t.value} sx={{ fontSize:'0.78rem' }}>{t.label}</MenuItem>)}
         </Select>
 
