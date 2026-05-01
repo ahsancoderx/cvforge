@@ -1,23 +1,46 @@
 'use client';
-import { Box, Typography, Grid, Button, Chip } from '@mui/material';
+import { Box, Typography, Button, Chip, Grid } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../components/layout/Navbar';
 import { TEMPLATES } from '../../data/templates';
 import { loadResume, saveResume } from '../../utils/storage';
 import { DEFAULT_RESUME } from '../../data/defaultResume';
+import {
+  MinimalTemplate, CorporateTemplate, CreativeTemplate, TechTemplate,
+  PurpleTemplate, SlateTemplate, MarineTemplate, CrimsonTemplate, ForestTemplate
+} from '../../components/template/AllTemplates';
+
+const TPL_MAP = {
+  minimal: MinimalTemplate, corporate: CorporateTemplate,
+  creative: CreativeTemplate, tech: TechTemplate,
+  purple: PurpleTemplate, slate: SlateTemplate,
+  marine: MarineTemplate, crimson: CrimsonTemplate, forest: ForestTemplate,
+};
+
+// Dummy resume for previews — same data for all templates
+const PREVIEW_RESUME = {
+  ...DEFAULT_RESUME,
+  personal: {
+    name: 'Alex Rivera', title: 'Senior Software Engineer',
+    email: 'alex@email.com', phone: '+1 415 555 0123',
+    location: 'San Francisco, CA', linkedin: 'linkedin.com/in/alexrivera',
+    github: 'github.com/alexrivera', portfolio: '', twitter: '', photo: '',
+  },
+  summary: 'Experienced software engineer with 6+ years building scalable systems at Fortune 500 companies. Passionate about clean architecture and shipping products that users love.',
+  experience: [
+    { id:'1', role:'Senior Engineer', company:'Meta Platforms', date:'2021–Present', desc:'Led development of real-time messaging serving 400M+ users. Reduced API latency by 38%.' },
+    { id:'2', role:'Software Engineer', company:'Stripe', date:'2019–2021', desc:'Built payment infrastructure handling $2B+ monthly transactions.' },
+  ],
+  education: [{ id:'1', degree:'B.S. Computer Science', school:'UC Berkeley', date:'2014–2018', desc:'GPA 3.8 — Dean\'s List. Focus: Algorithms, Distributed Systems.' }],
+  skills: ['JavaScript','TypeScript','React','Node.js','Python','GraphQL','Docker','AWS'],
+  projects: [{ id:'1', name:'OpenMetrics', link:'github.com/alexrivera/openmetrics', desc:'Open-source tool with 2k+ GitHub stars built with React and D3.js.' }],
+  certifications: [{ id:'1', name:'AWS Solutions Architect', org:'Amazon', date:'2022' }],
+  languages: [{ id:'1', name:'English', level:'Native' }, { id:'2', name:'Spanish', level:'Fluent' }],
+  sections: { personal:true, summary:true, experience:true, education:true, skills:true, projects:true, certifications:true, languages:true },
+};
 
 export default function TemplatesPage() {
   const router = useRouter();
-
-  // accent color map — keyed by template id
-  const accent = {
-    minimal:   '#6c63ff',
-    corporate: '#a78bfa',
-    creative:  '#f59e0b',
-    tech:      '#059669',
-    purple:    '#4a1942',
-    purple2:   '#4a1942',
-  };
 
   function useTemplate(id) {
     const current = loadResume() || { ...DEFAULT_RESUME };
@@ -26,91 +49,70 @@ export default function TemplatesPage() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', background: '#0d0f14' }}>
+    <Box sx={{ minHeight:'100vh', background:'#0d0f14' }}>
       <Navbar />
-      <Box sx={{ textAlign: 'center', pt: 5, pb: 3, px: 2 }}>
-        <Typography variant="h2" sx={{ fontSize: '2rem', mb: 1 }}>Choose Your Template</Typography>
-        <Typography sx={{ color: '#8b8fa8', fontSize: '0.9rem' }}>Select a style that fits your industry</Typography>
+      <Box sx={{ textAlign:'center', pt:5, pb:2, px:2 }}>
+        <Typography variant="h2" sx={{ fontSize:'2rem', fontFamily:'"Playfair Display",serif', mb:1 }}>
+          Choose Your Template
+        </Typography>
+        <Typography sx={{ color:'#8b8fa8', fontSize:'0.9rem' }}>
+          9 professional designs with real preview — what you see is what you get
+        </Typography>
       </Box>
-      <Grid container spacing={2.5} sx={{ maxWidth: 1200, mx: 'auto', px: 3, pb: 6 }}>
-        {TEMPLATES.map((t) => (
-          <Grid item xs={12} sm={6} md={4} key={t.id}>
-            <Box sx={{
-              background: '#13151c',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 3,
-              overflow: 'hidden',
-              transition: 'all 0.25s',
-              '&:hover': {
-                borderColor: `${accent[t.id]}60`,
-                transform: 'translateY(-5px)',
-                boxShadow: '0 16px 48px rgba(0,0,0,0.4)',
-              },
-            }}>
-              {/* Preview thumbnail */}
-              <Box sx={{
-                height: 200,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'linear-gradient(135deg, #1a1d27, #222636)',
-                position: 'relative',
-              }}>
-                <Box sx={{
-                  width: 110, height: 155, background: '#fff', borderRadius: 1,
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.4)', p: '8px', overflow: 'hidden',
-                }}>
-                  <Box sx={{
-                    height: 24, background: accent[t.id],
-                    borderRadius: '2px 2px 0 0',
-                    mx: -1, mt: -1, mb: 1,
-                    display: 'flex', alignItems: 'center', px: 1,
-                  }}>
-                    <Box sx={{ width: '60%', height: 3, background: 'rgba(255,255,255,0.7)', borderRadius: 1 }} />
-                  </Box>
-                  {[0.8, 0.55, 0.9, 0.45, 0.7, 0.4, 0.85, 0.5].map((w, i) => (
-                    <Box key={i} sx={{
-                      height: 3, width: `${w * 100}%`, borderRadius: 1, mb: '4px',
-                      background: i % 4 === 0 ? accent[t.id] : '#e5e7eb',
-                      opacity: i % 4 === 0 ? 1 : 0.6,
-                    }} />
-                  ))}
-                </Box>
-                <Chip
-                  label={t.tag}
-                  size="small"
-                  sx={{
-                    position: 'absolute', top: 10, right: 10,
-                    fontSize: '0.65rem',
-                    background: `${accent[t.id]}22`,
-                    color: accent[t.id],
-                    border: `1px solid ${accent[t.id]}40`,
-                    height: 22,
-                  }}
-                />
-              </Box>
 
-              {/* Info + button */}
-              <Box sx={{ p: 1.5 }}>
-                <Typography sx={{ fontWeight: 600, fontSize: '0.9rem', mb: 0.4 }}>{t.name}</Typography>
-                <Typography sx={{ color: '#8b8fa8', fontSize: '0.78rem', mb: 1.2, lineHeight: 1.5 }}>{t.desc}</Typography>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  onClick={() => useTemplate(t.id)}
-                  sx={{
-                    background: accent[t.id],
-                    fontSize: '0.82rem',
-                    py: 0.7,
-                    textTransform: 'none',
-                    '&:hover': { background: accent[t.id], filter: 'brightness(1.15)' },
+      <Box sx={{ maxWidth:1300, mx:'auto', px:3, pb:6 }}>
+        <Grid container spacing={2.5}>
+          {TEMPLATES.map((t) => {
+            const Template = TPL_MAP[t.id];
+            return (
+              <Grid item xs={12} sm={6} md={4} key={t.id}>
+                <Box sx={{
+                  background:'#13151c', border:'1px solid rgba(255,255,255,0.08)',
+                  borderRadius:3, overflow:'hidden', transition:'all 0.25s',
+                  '&:hover': { borderColor:`${t.accent}80`, transform:'translateY(-5px)',
+                    boxShadow:`0 20px 60px rgba(0,0,0,0.5)` },
+                }}>
+                  {/* Live CV Preview */}
+                  <Box sx={{
+                    height:320, overflow:'hidden', position:'relative',
+                    background:'#f8f8f8', cursor:'pointer',
                   }}
-                >
-                  Use This Template
-                </Button>
-              </Box>
-            </Box>
-          </Grid>
-        ))}
-      </Grid>
+                    onClick={() => useTemplate(t.id)}
+                  >
+                    <Box sx={{
+                      position:'absolute', top:0, left:0,
+                      width:'900px', height:'1200px',
+                      transform:'scale(0.288)',
+                      transformOrigin:'top left',
+                      pointerEvents:'none',
+                    }}>
+                      <Template resume={{ ...PREVIEW_RESUME, template:t.id }} />
+                    </Box>
+                    {/* Badge */}
+                    <Chip label={t.tag} size="small" sx={{
+                      position:'absolute', top:10, right:10,
+                      fontSize:'0.65rem', height:22,
+                      background:`${t.accent}25`, color:t.accent,
+                      border:`1px solid ${t.accent}50`, fontWeight:700,
+                    }} />
+                  </Box>
+
+                  {/* Info */}
+                  <Box sx={{ p:1.5, borderTop:'1px solid rgba(255,255,255,0.06)' }}>
+                    <Typography sx={{ fontWeight:600, fontSize:'0.9rem', mb:0.4 }}>{t.name}</Typography>
+                    <Typography sx={{ color:'#8b8fa8', fontSize:'0.78rem', mb:1.2, lineHeight:1.5 }}>{t.desc}</Typography>
+                    <Button fullWidth variant="contained" onClick={() => useTemplate(t.id)}
+                      sx={{ background:t.accent, fontSize:'0.82rem', py:0.7, textTransform:'none',
+                        '&:hover': { background:t.accent, filter:'brightness(1.15)' } }}>
+                      Use This Template →
+                    </Button>
+                  </Box>
+                </Box>
+              </Grid>
+            );
+          })}
+        </Grid>
+      </Box>
     </Box>
   );
 }

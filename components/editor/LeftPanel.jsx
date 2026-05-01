@@ -78,15 +78,16 @@ export default function LeftPanel({ resume, handlers, onDownloadClick, isMobile 
           }}
         >
           {[
-            { value: 'minimal',   label: 'Minimal' },
-            { value: 'corporate', label: 'Corporate' },
-            { value: 'creative',  label: 'Creative' },
-            { value: 'tech',      label: 'Tech Pro' },
-            { value: 'purple',    label: 'Purple Elegance' },
-            { value: 'purple2',   label: 'Purple Classic' },
-          ].map((t) => (
-            <MenuItem key={t.value} value={t.value} sx={{ fontSize: '0.78rem' }}>{t.label}</MenuItem>
-          ))}
+  { value:'minimal',   label:'Minimal' },
+  { value:'corporate', label:'Corporate' },
+  { value:'creative',  label:'Creative' },
+  { value:'tech',      label:'Tech Pro' },
+  { value:'purple',    label:'Purple Elegance' },
+  { value:'slate',     label:'Executive Slate' },
+  { value:'marine',    label:'Marine Blue' },
+  { value:'crimson',   label:'Crimson Pro' },
+  { value:'forest',    label:'Forest Green' },
+].map(t => <MenuItem key={t.value} value={t.value} sx={{ fontSize:'0.78rem' }}>{t.label}</MenuItem>)}
         </Select>
 
         <Tooltip title="Download CV as PDF">

@@ -27,7 +27,7 @@ export default function DownloadModal({ open, onClose, resume }) {
       ...resume,
       colorTheme: mode === 'bw' ? null : (theme !== undefined ? theme : resume.colorTheme),
     };
-    exportResumeToPDF(r, mode);
+    exportResumeToPDF(resume, 'color')
     setTimeout(() => { setLoading(false); onClose(); }, 800);
   }
 
