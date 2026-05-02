@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
       canvas: { browser: './empty-module.js' },
     },
   },
+  
 
   webpack: (config: any, { isServer }: { isServer: boolean }) => {
     config.resolve.alias = {
