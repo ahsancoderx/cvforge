@@ -4,7 +4,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import theme from '../styles/theme';
 
 export const metadata = {
-  metadataBase: new URL('https://yourdomain.com'),
+  metadataBase: new URL('https://cvstudio-six.vercel.app'),
 
   title: {
     default: 'CVStudio — Build Professional ATS-Friendly Resumes',
@@ -31,7 +31,7 @@ export const metadata = {
     title: 'CVStudio — Build Professional Resumes',
     description:
       'Design ATS-friendly resumes, choose templates, and download PDF instantly.',
-    url: 'https://yourdomain.com',
+    url: 'https://cvstudio-six.vercel.app',
     siteName: 'CVStudio',
     images: [
       {
