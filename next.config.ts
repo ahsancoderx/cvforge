@@ -7,7 +7,6 @@ const nextConfig: NextConfig = {
       canvas: { browser: './empty-module.js' },
     },
   },
-  
 
   webpack: (config: any, { isServer }: { isServer: boolean }) => {
     config.resolve.alias = {
@@ -33,6 +32,28 @@ const nextConfig: NextConfig = {
 
   async headers() {
     return [
+      {
+        source: '/sitemap.xml',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/xml',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+        ],
+      },
+      {
+        source: '/robots.txt',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'text/plain',
+          },
+        ],
+      },
       {
         source: '/(.*)',
         headers: [
