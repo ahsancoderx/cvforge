@@ -1,4 +1,4 @@
-//components/ats/Uploadanel
+//components/ats/UploadPanel
 'use client';
 import { Box, Typography, CircularProgress, LinearProgress } from '@mui/material';
 import { useState, useRef, useCallback, useEffect } from 'react';
@@ -15,9 +15,9 @@ const STEPS = [
   'Generating recommendations...',
 ];
 
-// ── Load pdfjs from CDN once ───────────────────────────────
+// ── Load pdfjs from CDN ────────────────────────────────────
 const PDFJS_VERSION = '3.11.174';
-const PDFJS_CDN     = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}`;
+const PDFJS_CDN = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}`;
 
 function loadPdfjsFromCDN() {
   return new Promise((resolve, reject) => {
@@ -28,16 +28,58 @@ function loadPdfjsFromCDN() {
       window.pdfjsLib.GlobalWorkerOptions.workerSrc = `${PDFJS_CDN}/pdf.worker.min.js`;
       resolve(window.pdfjsLib);
     };
-    script.onerror = () => reject(new Error('Failed to load PDF.js from CDN'));
+    script.onerror = () => reject(new Error('Failed to load PDF.js'));
     document.head.appendChild(script);
   });
 }
 
+// ── Load Tesseract v4 (stable CDN, window.Tesseract works) ─
+// NOTE: Using v4 NOT v5. v5 removed window.Tesseract global.
+function loadTesseract() {
+  return new Promise((resolve, reject) => {
+    if (window.Tesseract) { resolve(window.Tesseract); return; }
+    const script = document.createElement('script');
+    // v4 is the last version that exposes window.Tesseract with simple .recognize() API
+    script.src = 'https://unpkg.com/tesseract.js@4.1.4/dist/tesseract.min.js';
+    script.onload = () => {
+      // small delay to ensure global is set
+      setTimeout(() => {
+        if (window.Tesseract) resolve(window.Tesseract);
+        else reject(new Error('Tesseract did not expose global'));
+      }, 200);
+    };
+    script.onerror = () => reject(new Error('Failed to load Tesseract'));
+    document.head.appendChild(script);
+  });
+}
+
+// ── Run OCR using Tesseract v4 API ────────────────────────
+// v4 API: Tesseract.recognize(image, lang, { logger }) → { data: { text } }
+async function runOCR(imageSource, setMsg, pageLabel) {
+  const Tesseract = await loadTesseract();
+  setMsg?.(`OCR running${pageLabel ? ' ' + pageLabel : ''}...`);
+  
+  const result = await Tesseract.recognize(
+    imageSource,
+    'eng',
+    {
+      logger: (m) => {
+        if (m.status === 'recognizing text') {
+          const pct = Math.round((m.progress || 0) * 100);
+          setMsg?.(`OCR${pageLabel ? ' ' + pageLabel : ''}: ${pct}%`);
+        }
+      },
+    }
+  );
+  return (result?.data?.text) || '';
+}
+
 export default function UploadPanel({ onResumeParsed }) {
-  const [isDragging, setIsDragging]     = useState(false);
-  const [loading, setLoading]           = useState(false);
-  const [loadingStep, setLoadingStep]   = useState(0);
-  const [error, setError]               = useState('');
+  const [isDragging, setIsDragging]   = useState(false);
+  const [loading, setLoading]         = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
+  const [loadingMsg, setLoadingMsg]   = useState('');
+  const [error, setError]             = useState('');
   const inputRef = useRef();
 
   useEffect(() => {
@@ -58,40 +100,65 @@ export default function UploadPanel({ onResumeParsed }) {
     setError('');
     const name = file.name.toLowerCase();
     const type = file.type;
-    const isPDF  = type === 'application/pdf' || name.endsWith('.pdf');
-    const isDOCX = type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || name.endsWith('.docx');
+    const isPDF  = type === 'application/pdf'  || name.endsWith('.pdf');
+    const isDOCX = type.includes('wordprocessingml') || name.endsWith('.docx');
     const isDOC  = type === 'application/msword' || name.endsWith('.doc');
-    const isTXT  = type === 'text/plain' || name.endsWith('.txt');
+    const isTXT  = type === 'text/plain'        || name.endsWith('.txt');
+    const isIMG  = type.startsWith('image/')    || /\.(png|jpe?g|webp|bmp|tiff?)$/i.test(name);
 
-    if (!isPDF && !isDOCX && !isDOC && !isTXT) {
-      setError('Unsupported file type. Please upload PDF, DOCX, or TXT.');
+    if (!isPDF && !isDOCX && !isDOC && !isTXT && !isIMG) {
+      setError('Unsupported file. Please upload PDF, DOCX, TXT, or image (PNG/JPG).');
       return;
     }
 
     setLoading(true);
     setLoadingStep(0);
+    setLoadingMsg('');
 
     try {
       let text = '';
-      if (isTXT)             text = await extractTxt(file);
-      else if (isDOCX||isDOC) text = await extractDocx(file);
-      else if (isPDF)        text = await extractPdf(file);
+
+      if (isTXT) {
+        text = await extractTxt(file);
+
+      } else if (isDOCX || isDOC) {
+        text = await extractDocx(file);
+
+      } else if (isIMG) {
+        // Direct image → OCR
+        setLoadingMsg('Loading OCR engine...');
+        text = await runOCR(file, setLoadingMsg, '');
+
+      } else if (isPDF) {
+        // Try normal text extraction first
+        setLoadingMsg('Extracting PDF text...');
+        text = await extractPdf(file).catch(() => '');
+
+        if (!text || text.trim().length < 50) {
+          // Scanned PDF → render each page as image → OCR
+          setLoadingMsg('Scanned PDF detected — loading OCR engine...');
+          text = await extractPdfViaOCR(file, setLoadingMsg);
+        }
+      }
 
       if (!text || text.trim().length < 50) {
         throw new Error(
           isPDF
-            ? 'PDF text is empty. Make sure your PDF is text-based (you can select/copy text in it), not a scanned image.'
-            : 'Could not extract enough text. Try saving as a different format.'
+            ? 'Could not extract text. Try uploading as PNG/JPG screenshot of your CV instead.'
+            : 'Could not extract enough text. Try a different format.'
         );
       }
 
       simulateProgress(() => {
         const resume = parseResumeText(text);
         setLoading(false);
+        setLoadingMsg('');
         onResumeParsed({ resume, rawText: text, fileName: file.name });
       });
+
     } catch (err) {
       setLoading(false);
+      setLoadingMsg('');
       setError(err.message || 'Failed to process file. Please try again.');
     }
   }, [onResumeParsed, simulateProgress]);
@@ -142,8 +209,13 @@ export default function UploadPanel({ onResumeParsed }) {
             '&:hover': { border: '2px dashed rgba(108,99,255,0.6)', background: 'rgba(108,99,255,0.05)' },
           }}
         >
-          <input ref={inputRef} type="file" accept=".pdf,.docx,.doc,.txt"
-            style={{ display: 'none' }} onChange={handleFileChange} />
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.webp,.bmp"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
           <Box sx={{
             width: 72, height: 72, borderRadius: '18px',
             background: 'linear-gradient(135deg, rgba(108,99,255,0.2), rgba(167,139,250,0.1))',
@@ -158,7 +230,7 @@ export default function UploadPanel({ onResumeParsed }) {
             or click to browse from your computer
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {['PDF', 'DOCX', 'TXT'].map((fmt) => (
+            {['PDF', 'DOCX', 'TXT', 'PNG / JPG'].map((fmt) => (
               <Box key={fmt} sx={{
                 px: 1.5, py: 0.5, background: 'rgba(255,255,255,0.06)',
                 border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px',
@@ -166,6 +238,9 @@ export default function UploadPanel({ onResumeParsed }) {
               }}>{fmt}</Box>
             ))}
           </Box>
+          <Typography sx={{ fontSize: '0.72rem', color: '#4b5563', mt: 2 }}>
+            ✨ Scanned PDFs &amp; image CVs supported via OCR
+          </Typography>
         </Box>
       ) : (
         <Box sx={{ width: '100%', maxWidth: 480, textAlign: 'center' }}>
@@ -173,28 +248,48 @@ export default function UploadPanel({ onResumeParsed }) {
             width: 80, height: 80, borderRadius: '20px',
             background: 'linear-gradient(135deg, rgba(108,99,255,0.3), rgba(167,139,250,0.15))',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            mx: 'auto', mb: 3, animation: 'pulse 1.5s ease-in-out infinite',
-            '@keyframes pulse': { '0%, 100%': { opacity: 1, transform: 'scale(1)' }, '50%': { opacity: 0.7, transform: 'scale(0.96)' } },
+            mx: 'auto', mb: 3,
+            animation: 'pulse 1.5s ease-in-out infinite',
+            '@keyframes pulse': {
+              '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+              '50%':      { opacity: 0.7, transform: 'scale(0.96)' },
+            },
           }}>
             <CircularProgress size={32} sx={{ color: '#a78bfa' }} />
           </Box>
           <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', mb: 0.5, color: '#f0f0f8' }}>
             Analyzing your CV...
           </Typography>
-          <Typography sx={{ color: '#a78bfa', fontSize: '0.85rem', mb: 3, minHeight: 20 }}>
+          <Typography sx={{ color: '#a78bfa', fontSize: '0.85rem', mb: loadingMsg ? 1 : 3, minHeight: 20 }}>
             {STEPS[Math.min(loadingStep, STEPS.length - 1)]}
           </Typography>
-          <Box sx={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', p: 2 }}>
-            <LinearProgress variant="determinate"
+          {loadingMsg && (
+            <Typography sx={{ color: '#f59e0b', fontSize: '0.78rem', mb: 2 }}>
+              {loadingMsg}
+            </Typography>
+          )}
+          <Box sx={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '12px', p: 2,
+          }}>
+            <LinearProgress
+              variant="determinate"
               value={Math.round(((loadingStep + 1) / STEPS.length) * 100)}
-              sx={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.08)',
-                '& .MuiLinearProgress-bar': { background: 'linear-gradient(90deg, #6c63ff, #a78bfa)', borderRadius: 3 } }}
+              sx={{
+                height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.08)',
+                '& .MuiLinearProgress-bar': {
+                  background: 'linear-gradient(90deg, #6c63ff, #a78bfa)', borderRadius: 3,
+                },
+              }}
             />
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
               {STEPS.map((_, i) => (
-                <Box key={i} sx={{ width: 6, height: 6, borderRadius: '50%',
+                <Box key={i} sx={{
+                  width: 6, height: 6, borderRadius: '50%',
                   background: i <= loadingStep ? '#6c63ff' : 'rgba(255,255,255,0.1)',
-                  transition: 'background 0.3s' }} />
+                  transition: 'background 0.3s',
+                }} />
               ))}
             </Box>
           </Box>
@@ -211,7 +306,7 @@ export default function UploadPanel({ onResumeParsed }) {
           <Box>
             <Typography sx={{ fontSize: '0.82rem', color: '#fca5a5', lineHeight: 1.6 }}>{error}</Typography>
             <Typography sx={{ fontSize: '0.75rem', color: '#ef444488', mt: 0.8 }}>
-              Tip: Open your PDF → select all text (Ctrl+A) — if text highlights, it will work. If nothing selects, it is a scanned image.
+              💡 Tip: Take a screenshot of your CV and upload as PNG/JPG for best OCR results.
             </Typography>
           </Box>
         </Box>
@@ -222,7 +317,7 @@ export default function UploadPanel({ onResumeParsed }) {
           { icon: '🔒', text: 'Private & Secure' },
           { icon: '⚡', text: 'Instant Analysis' },
           { icon: '🎯', text: '6 ATS Checks' },
-          { icon: '💡', text: 'Smart Suggestions' },
+          { icon: '🔍', text: 'OCR Support' },
         ].map((f) => (
           <Box key={f.text} sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
             <Typography sx={{ fontSize: '1rem' }}>{f.icon}</Typography>
@@ -239,29 +334,17 @@ async function extractTxt(file) {
   return await file.text();
 }
 
-// ── PDF via CDN pdfjs (no bundler) ─────────────────────────
+// ── PDF (text-based) ───────────────────────────────────────
 async function extractPdf(file) {
-  let pdfjsLib;
-  try {
-    pdfjsLib = await loadPdfjsFromCDN();
-  } catch {
-    throw new Error('Could not load PDF reader. Check your internet connection and try again.');
-  }
-
+  const pdfjsLib = await loadPdfjsFromCDN();
   const arrayBuffer = await file.arrayBuffer();
-  let pdf;
-  try {
-    pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
-  } catch (err) {
-    throw new Error('Could not open this PDF. It may be password-protected or corrupted.');
-  }
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
 
   const pageTexts = [];
   for (let i = 1; i <= pdf.numPages; i++) {
     const page    = await pdf.getPage(i);
     const content = await page.getTextContent();
-    let lastY = null;
-    let pageText = '';
+    let lastY = null, pageText = '';
     for (const item of content.items) {
       if (!item.str) continue;
       const y = item.transform?.[5] ?? 0;
@@ -271,18 +354,39 @@ async function extractPdf(file) {
     }
     pageTexts.push(pageText.trim());
   }
-
-  const fullText = pageTexts.join('\n\n').trim();
-  if (fullText.length < 50) {
-    throw new Error(
-      'This PDF appears to contain no selectable text — it is likely a scanned image. ' +
-      'Please export from Word as PDF, or paste your CV into a .txt file and upload that.'
-    );
-  }
-  return fullText;
+  return pageTexts.join('\n\n').trim();
 }
 
-// ── DOCX via mammoth browser build + jszip fallback ────────
+// ── Scanned PDF → canvas → OCR ────────────────────────────
+async function extractPdfViaOCR(file, setMsg) {
+  setMsg?.('Loading OCR engine...');
+  const pdfjsLib = await loadPdfjsFromCDN();
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+  const total = Math.min(pdf.numPages, 5);
+  const allText = [];
+
+  for (let i = 1; i <= total; i++) {
+    setMsg?.(`Rendering page ${i}/${total}...`);
+    const page     = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 2.5 });
+    const canvas   = document.createElement('canvas');
+    canvas.width   = viewport.width;
+    canvas.height  = viewport.height;
+    const ctx      = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    // Convert canvas → blob → OCR
+    const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'));
+    const text = await runOCR(blob, setMsg, `page ${i}/${total}`);
+    allText.push(text);
+  }
+
+  return allText.join('\n\n').trim();
+}
+
+// ── DOCX ──────────────────────────────────────────────────
 async function extractDocx(file) {
   const arrayBuffer = await file.arrayBuffer();
 
@@ -290,24 +394,21 @@ async function extractDocx(file) {
     const mammoth = await import('mammoth/mammoth.browser');
     const result  = await mammoth.extractRawText({ arrayBuffer });
     if (result?.value?.trim().length > 30) return result.value;
-  } catch (err) {
-    console.warn('[DOCX] mammoth failed:', err?.message);
+  } catch (e) {
+    console.warn('[DOCX] mammoth failed:', e?.message);
   }
 
   try {
     const { default: JSZip } = await import('jszip');
     const zip     = await JSZip.loadAsync(arrayBuffer);
     const xmlFile = zip.file('word/document.xml');
-    if (!xmlFile) throw new Error('word/document.xml not found');
+    if (!xmlFile) throw new Error('No document.xml');
     const xml     = await xmlFile.async('string');
     const matches = xml.match(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g) ?? [];
     const text    = matches.map((m) => m.replace(/<[^>]+>/g, '')).join(' ').replace(/\s+/g, ' ').trim();
-    if (text.length < 30) throw new Error('Too little text in DOCX');
+    if (text.length < 30) throw new Error('Too little text');
     return text;
-  } catch (err) {
-    console.error('[DOCX] jszip fallback failed:', err?.message);
-    throw new Error(
-      'Could not read this Word file. Please try: open in Microsoft Word → File → Save As → PDF, then upload the PDF.'
-    );
+  } catch (e) {
+    throw new Error('Could not read Word file. Try saving as PDF and uploading that.');
   }
 }

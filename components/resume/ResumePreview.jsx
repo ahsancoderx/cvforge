@@ -10,7 +10,7 @@ import {
   CrimsonTemplate,
   ForestTemplate,
   NavyaTemplate,     
-} from '../template/AllTemplates';   // ← correct path: templates (with s)
+} from '../template/AllTemplates';   
 
 const MAP = {
   minimal:   MinimalTemplate,

@@ -10,7 +10,7 @@ import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import StyleRoundedIcon from '@mui/icons-material/StyleRounded';
 import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded';
 import FactCheckRoundedIcon from '@mui/icons-material/FactCheckRounded';
-import SwapHorizIcon from '@mui/icons-material/SwapHoriz'; // ✅ added
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz'; 
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -22,7 +22,7 @@ const LINKS = [
   { label: 'Editor',    href: '/editor',    icon: <EditNoteRoundedIcon sx={{ fontSize: 16 }} /> },
   { label: 'ATS Check', href: '/ats',       icon: <FactCheckRoundedIcon sx={{ fontSize: 16 }} /> },
 
-  // ✅ NEW CONVERTER PAGE
+  // NEW CONVERTER PAGE
   { label: 'Converter', href: '/converter', icon: <SwapHorizIcon sx={{ fontSize: 16 }} /> },
 ];
 
@@ -72,19 +72,20 @@ export default function Navbar() {
             >
               <AutoAwesomeIcon sx={{ fontSize: 17, color: '#fff' }} />
             </Box>
-            <Typography
-              sx={{
-                fontFamily: '"Playfair Display", serif',
-                fontWeight: 700,
-                fontSize: { xs: '1.25rem', md: '1.4rem' },
-                background: 'linear-gradient(135deg, #a78bfa, #6c63ff, #f59e0b)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              CVForge
-            </Typography>
+           <Typography
+  sx={{
+    fontSize: '2.1rem',
+    fontWeight: 700,
+    lineHeight: 1,
+    letterSpacing: '-0.03em',
+    background: 'linear-gradient(135deg, #a78bfa, #6c63ff, #f59e0b)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    display: 'inline-block',
+  }}
+>
+  CVStudio
+</Typography>
           </Box>
 
           {/* Desktop Nav Links */}

@@ -12,6 +12,7 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CodeIcon from '@mui/icons-material/Code';
+import LinkIcon from '@mui/icons-material/Link';
 
 // ── Section Card ───────────────────────────────────────────
 function SectionCard({ title, icon, children, accent = '#6c63ff', isEmpty }) {
@@ -62,7 +63,7 @@ function SectionCard({ title, icon, children, accent = '#6c63ff', isEmpty }) {
 }
 
 // ── Info Row ───────────────────────────────────────────────
-function InfoRow({ label, value, status }) {
+function InfoRow({ label, value, status, isLink }) {
   const color = status === 'found' ? '#22c55e' : '#ef4444';
   return (
     <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1 }}>
@@ -76,9 +77,25 @@ function InfoRow({ label, value, status }) {
         <Typography sx={{ fontSize: '0.68rem', color: '#6b7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           {label}
         </Typography>
-        <Typography sx={{ fontSize: '0.8rem', color: value ? '#e2e8f0' : '#4b5563', mt: 0.2, wordBreak: 'break-word' }}>
-          {value || 'Not found'}
-        </Typography>
+        {isLink && value ? (
+          <Typography
+            component="a"
+            href={value}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{
+              fontSize: '0.8rem', color: '#a78bfa', mt: 0.2,
+              wordBreak: 'break-all', display: 'block', textDecoration: 'none',
+              '&:hover': { textDecoration: 'underline' },
+            }}
+          >
+            {value}
+          </Typography>
+        ) : (
+          <Typography sx={{ fontSize: '0.8rem', color: value ? '#e2e8f0' : '#4b5563', mt: 0.2, wordBreak: 'break-word' }}>
+            {value || 'Not found'}
+          </Typography>
+        )}
       </Box>
     </Box>
   );
@@ -134,10 +151,7 @@ function ExperienceCard({ exp }) {
             border: `1px solid ${ok ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.15)'}`,
             display: 'flex', alignItems: 'center', gap: 0.4,
           }}>
-            {ok
-              ? <CheckCircleIcon sx={{ fontSize: '0.7rem' }} />
-              : <CancelIcon sx={{ fontSize: '0.7rem' }} />
-            }
+            {ok ? <CheckCircleIcon sx={{ fontSize: '0.7rem' }} /> : <CancelIcon sx={{ fontSize: '0.7rem' }} />}
             {ok ? yes : no}
           </Box>
         ))}
@@ -168,10 +182,49 @@ function RawTextView({ rawText }) {
   );
 }
 
+// ── Social Link Chip ───────────────────────────────────────
+function SocialChip({ label, url, icon, color }) {
+  if (!url) return null;
+  return (
+    <Box
+      component="a"
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      sx={{
+        display: 'inline-flex', alignItems: 'center', gap: 0.6,
+        px: 1.2, py: 0.5, borderRadius: '6px',
+        fontSize: '0.72rem', fontWeight: 600, textDecoration: 'none',
+        background: `${color}15`,
+        border: `1px solid ${color}35`,
+        color,
+        transition: 'all 0.15s',
+        '&:hover': { background: `${color}25` },
+      }}
+    >
+      {icon}
+      {label}
+    </Box>
+  );
+}
+
 // ── Main Export ────────────────────────────────────────────
 export default function ParsedResumeView({ resume, rawText }) {
   const [tab, setTab] = useState(0);
   const p = resume.personal || {};
+
+  const socialLinks = [
+    { key: 'linkedin',      label: 'LinkedIn',       color: '#0ea5e9', icon: '💼' },
+    { key: 'github',        label: 'GitHub',          color: '#a78bfa', icon: '🐙' },
+    { key: 'twitter',       label: 'Twitter / X',     color: '#38bdf8', icon: '🐦' },
+    { key: 'portfolio',     label: 'Portfolio',       color: '#22c55e', icon: '🌐' },
+    { key: 'stackoverflow', label: 'Stack Overflow',  color: '#f97316', icon: '📚' },
+    { key: 'medium',        label: 'Medium',          color: '#e5e7eb', icon: '✍️' },
+    { key: 'behance',       label: 'Behance',         color: '#6c63ff', icon: '🎨' },
+    { key: 'dribbble',      label: 'Dribbble',        color: '#ec4899', icon: '🏀' },
+    { key: 'kaggle',        label: 'Kaggle',          color: '#22d3ee', icon: '📊' },
+    { key: 'leetcode',      label: 'LeetCode',        color: '#f59e0b', icon: '⚡' },
+  ].filter((s) => p[s.key]);
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 900, mx: 'auto' }}>
@@ -214,13 +267,35 @@ export default function ParsedResumeView({ resume, rawText }) {
             accent="#6c63ff"
           >
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1 }}>
-              <InfoRow label="Full Name" value={p.name} status={p.name ? 'found' : 'missing'} />
-              <InfoRow label="Email" value={p.email} status={p.email ? 'found' : 'missing'} />
-              <InfoRow label="Phone" value={p.phone} status={p.phone ? 'found' : 'missing'} />
-              <InfoRow label="Location" value={p.location} status={p.location ? 'found' : 'missing'} />
-              <InfoRow label="LinkedIn" value={p.linkedin} status={p.linkedin ? 'found' : 'missing'} />
-              <InfoRow label="GitHub" value={p.github} status={p.github ? 'found' : 'missing'} />
+              <InfoRow label="Full Name"  value={p.name}     status={p.name     ? 'found' : 'missing'} />
+              <InfoRow label="Email"      value={p.email}    status={p.email    ? 'found' : 'missing'} />
+              <InfoRow label="Phone"      value={p.phone}    status={p.phone    ? 'found' : 'missing'} />
+              <InfoRow label="Location"   value={p.location} status={p.location ? 'found' : 'missing'} />
+              <InfoRow label="LinkedIn"   value={p.linkedin} status={p.linkedin ? 'found' : 'missing'} isLink />
+              <InfoRow label="GitHub"     value={p.github}   status={p.github   ? 'found' : 'missing'} isLink />
+              {p.twitter      && <InfoRow label="Twitter / X"    value={p.twitter}      status="found" isLink />}
+              {p.portfolio    && <InfoRow label="Portfolio / Site" value={p.portfolio}  status="found" isLink />}
+              {p.stackoverflow && <InfoRow label="Stack Overflow" value={p.stackoverflow} status="found" isLink />}
+              {p.medium       && <InfoRow label="Medium"          value={p.medium}      status="found" isLink />}
+              {p.behance      && <InfoRow label="Behance"         value={p.behance}     status="found" isLink />}
+              {p.dribbble     && <InfoRow label="Dribbble"        value={p.dribbble}    status="found" isLink />}
+              {p.kaggle       && <InfoRow label="Kaggle"          value={p.kaggle}      status="found" isLink />}
+              {p.leetcode     && <InfoRow label="LeetCode"        value={p.leetcode}    status="found" isLink />}
             </Box>
+
+            {/* Social quick-links */}
+            {socialLinks.length > 0 && (
+              <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <Typography sx={{ fontSize: '0.65rem', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', mb: 1 }}>
+                  Detected Social Profiles
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.8 }}>
+                  {socialLinks.map((s) => (
+                    <SocialChip key={s.key} label={s.label} url={p[s.key]} icon={s.icon} color={s.color} />
+                  ))}
+                </Box>
+              </Box>
+            )}
           </SectionCard>
 
           {/* Summary */}

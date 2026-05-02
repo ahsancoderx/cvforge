@@ -1,510 +1,529 @@
 // ============================================================
-//  converterUtils.js  — v2  (Layout-Preserving)
+//  converterUtils.js  — v4  COMPLETE REWRITE
 //  Place at:  src/utils/converterUtils.js
 //
-//  npm install mammoth docx jspdf html2canvas pdf-lib
-//
-//  KEY FIX:  PDF → DOCX and DOCX → PDF now produce properly
-//  structured documents with:
-//    • Real Headings (H1, H2, H3) — not plain text
-//    • Bold / italic / underline runs
-//    • Bullet and numbered lists
-//    • Correct spacing between sections
-//    • Tables preserved
-//    • NO more single-paragraph dumps
+//  KEY FIX: PDF → DOCX/HTML/TXT now uses canvas rendering
+//  to preserve exact colors, layout, fonts from designed CVs.
+//  Each PDF page is rendered as a high-res image and embedded.
 // ============================================================
 
-// ─── Lazy pdf.js loader ──────────────────────────────────────────────────────
-async function getPdfJs() {
-  if (typeof window === 'undefined') throw new Error('PDF.js requires browser');
-  if (window.__pdfjs_lib) return window.__pdfjs_lib;
-  return new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-    s.onload = () => {
+// ─── pdf.js CDN loader ────────────────────────────────────────────────────────
+let _pdfJsPromise = null;
+function getPdfJs() {
+  if (_pdfJsPromise) return _pdfJsPromise;
+  _pdfJsPromise = new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') return reject(new Error('Browser only'));
+    if (window.__pdfjs_loaded) return resolve(window.pdfjsLib);
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    script.crossOrigin = 'anonymous';
+    script.onload = () => {
       window.pdfjsLib.GlobalWorkerOptions.workerSrc =
         'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      window.__pdfjs_lib = window.pdfjsLib;
+      window.__pdfjs_loaded = true;
       resolve(window.pdfjsLib);
     };
-    s.onerror = reject;
-    document.head.appendChild(s);
+    script.onerror = () => reject(new Error('Failed to load pdf.js from CDN'));
+    document.head.appendChild(script);
   });
+  return _pdfJsPromise;
 }
 
 // ─── File readers ─────────────────────────────────────────────────────────────
 export function readAsArrayBuffer(file) {
   return new Promise((res, rej) => {
     const r = new FileReader();
-    r.onload = () => res(r.result);
-    r.onerror = () => rej(new Error('Failed to read file'));
+    r.onload  = () => res(r.result);
+    r.onerror = () => rej(new Error(`Cannot read ${file.name}`));
     r.readAsArrayBuffer(file);
   });
 }
 function readAsText(file) {
   return new Promise((res, rej) => {
     const r = new FileReader();
-    r.onload = () => res(r.result);
-    r.onerror = () => rej(new Error('Failed to read file'));
+    r.onload  = () => res(r.result);
+    r.onerror = () => rej(new Error(`Cannot read ${file.name}`));
     r.readAsText(file);
   });
 }
 
-// ─── PDF: extract structured lines with heading detection ────────────────────
-async function extractPdfStructured(arrayBuffer) {
+// ─── CORE: Render ALL PDF pages to canvas images (HIGH-RES) ──────────────────
+// This is the KEY function. Instead of extracting text (which loses all
+// colors/layout from designed CVs), we render each page visually at 2.5x
+// scale, giving pixel-perfect output that matches the original.
+async function pdfToPageImages(arrayBuffer, scale = 2.5) {
   const pdfjs = await getPdfJs();
-  const pdf   = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-  const allLines = [];
-
-  for (let p = 1; p <= pdf.numPages; p++) {
-    const page    = await pdf.getPage(p);
-    const content = await page.getTextContent();
-    const vp      = page.getViewport({ scale: 1 });
-
-    // Group text items into lines by Y position (2px tolerance)
-    const lineMap = new Map();
-    for (const item of content.items) {
-      if (!item.str?.trim()) continue;
-      const y = Math.round(vp.height - item.transform[5]);
-      const key = [...lineMap.keys()].find(k => Math.abs(k - y) < 3);
-      if (key !== undefined) {
-        lineMap.get(key).push(item);
-      } else {
-        lineMap.set(y, [item]);
-      }
-    }
-
-    // Sort by Y and classify
-    const sorted = [...lineMap.entries()].sort((a, b) => a[0] - b[0]);
-
-    if (p > 1) allLines.push({ text: '', type: 'empty' });
-
-    for (const [, items] of sorted) {
-      const text    = items.map(i => i.str).join(' ').replace(/\s+/g, ' ').trim();
-      if (!text) continue;
-
-      const avgSize = items.reduce((s, i) => s + (i.height || 12), 0) / items.length;
-      const isBold  = items.some(i => i.fontName?.toLowerCase().includes('bold'));
-      const isAllCap = text.length > 2 && text.length < 60
-                       && text === text.toUpperCase()
-                       && /[A-Z]{2,}/.test(text);
-      const isBullet = /^[•▪▸▶‣◦]\s/.test(text);
-      const isNum    = /^\d+\.\s/.test(text);
-
-      let type = 'paragraph';
-      if      (avgSize >= 18 || (isBold && avgSize >= 16))        type = 'h1';
-      else if (avgSize >= 13 || (isBold && isAllCap))             type = 'h2';
-      else if (isBold && avgSize >= 11)                           type = 'h3';
-      else if (isBullet || isNum)                                 type = 'list';
-
-      allLines.push({
-        text,
-        type,
-        bold: isBold,
-        ordered: isNum,
-        cleanText: isBullet ? text.replace(/^[•▪▸▶‣◦]\s+/, '')
-                 : isNum    ? text.replace(/^\d+\.\s+/, '')
-                 : text,
-      });
-    }
+  let pdf;
+  try {
+    pdf = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+  } catch (e) {
+    throw new Error('Could not open PDF. It may be password-protected or corrupted.');
   }
 
-  return allLines;
+  const images = []; // Array of { dataUrl, width, height, naturalWidth, naturalHeight }
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page     = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale });
+    const canvas   = document.createElement('canvas');
+    canvas.width   = viewport.width;
+    canvas.height  = viewport.height;
+    const ctx      = canvas.getContext('2d');
+    ctx.fillStyle  = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    images.push({
+      dataUrl:       canvas.toDataURL('image/jpeg', 0.96),
+      width:         canvas.width,
+      height:        canvas.height,
+      naturalWidth:  viewport.width  / scale, // original PDF points
+      naturalHeight: viewport.height / scale,
+    });
+  }
+  return images;
 }
 
-// ─── PDF: render page 1 to JPG blob ──────────────────────────────────────────
-async function renderPdfPageToBlob(arrayBuffer, pageNum = 1, scale = 2) {
-  const pdfjs  = await getPdfJs();
-  const pdf    = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-  const page   = await pdf.getPage(pageNum);
-  const vp     = page.getViewport({ scale });
-  const canvas = document.createElement('canvas');
-  canvas.width = vp.width;
-  canvas.height = vp.height;
-  await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
-  return new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
-}
-
-// ─── PDF: plain text (for TXT export) ────────────────────────────────────────
-async function extractPdfText(arrayBuffer) {
+// ─── PDF text extraction (for TXT export only) ───────────────────────────────
+async function pdfToPlainText(arrayBuffer) {
   const pdfjs = await getPdfJs();
-  const pdf   = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+  const pdf   = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
   const pages = [];
   for (let i = 1; i <= pdf.numPages; i++) {
     const page    = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    pages.push(content.items.map(i => i.str).join(' ').trim());
+    const content = await page.getTextContent({ normalizeWhitespace: true });
+    const vp      = page.getViewport({ scale: 1 });
+
+    // Group by Y to preserve line order
+    const yMap = new Map();
+    for (const item of content.items) {
+      if (!item.str?.trim()) continue;
+      const y = Math.round(vp.height - item.transform[5]);
+      let found = null;
+      for (const k of yMap.keys()) {
+        if (Math.abs(k - y) <= 4) { found = k; break; }
+      }
+      const key = found ?? y;
+      if (!yMap.has(key)) yMap.set(key, []);
+      yMap.get(key).push(item);
+    }
+    const lines = [...yMap.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([, items]) => items.map(i => i.str).join(' ').replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+
+    pages.push(lines.join('\n'));
   }
   return pages;
 }
 
-// ─── DOCX → structured lines via mammoth HTML ────────────────────────────────
-async function docxToStructuredLines(arrayBuffer) {
-  const mammoth = await import('mammoth');
-  const { value: html } = await mammoth.convertToHtml({ arrayBuffer });
+// ─── PDF → DOCX: embed rendered page images into Word doc ────────────────────
+// Each page becomes a full-width image in the DOCX, preserving all colors/layout.
+async function pdfToDocxBlob(arrayBuffer, title) {
+  const images = await pdfToPageImages(arrayBuffer, 2.5);
+  if (images.length === 0) throw new Error('No pages could be rendered from this PDF.');
 
-  const parser = new DOMParser();
-  const dom    = parser.parseFromString(html, 'text/html');
-  const lines  = [];
+  const { Document, Packer, Paragraph, ImageRun, AlignmentType } = await import('docx');
 
-  function walk(node) {
-    const tag  = node.tagName?.toLowerCase();
-    const text = node.textContent?.replace(/\s+/g, ' ').trim();
-    if (!tag)   return;
-    if (!text)  return;
+  // A4 dimensions in EMUs (English Metric Units): 1 inch = 914400 EMU, A4 = 8.27 × 11.69 in
+  const A4_W_EMU    = 7560960; // 8.27in * 914400 - margins
+  const A4_W_POINTS = 595;     // PDF points for A4 width
 
-    if      (tag === 'h1') lines.push({ text, type: 'h1', bold: true });
-    else if (tag === 'h2') lines.push({ text, type: 'h2', bold: true });
-    else if (tag === 'h3' || tag === 'h4') lines.push({ text, type: 'h3', bold: true });
-    else if (tag === 'li') {
-      const ordered = node.parentElement?.tagName?.toLowerCase() === 'ol';
-      lines.push({ text, type: 'list', ordered, cleanText: text });
-    } else if (tag === 'p' || tag === 'div') {
-      const isBold = !!node.querySelector('strong, b');
-      lines.push({ text, type: isBold ? 'h3' : 'paragraph', bold: isBold });
-    } else if (tag === 'table') {
-      for (const row of node.querySelectorAll('tr')) {
-        const cells = Array.from(row.querySelectorAll('td,th'))
-          .map(c => c.textContent.trim()).filter(Boolean).join('   |   ');
-        if (cells) lines.push({ text: cells, type: 'paragraph', bold: false });
-      }
-    } else if (['ul','ol','tbody','thead','tr','body','section','article'].includes(tag)) {
-      for (const child of node.children) walk(child);
-    } else {
-      if (text) lines.push({ text, type: 'paragraph', bold: false });
-    }
+  const children = [];
+
+  for (let idx = 0; idx < images.length; idx++) {
+    const img = images[idx];
+
+    // Convert dataUrl → Uint8Array for docx ImageRun
+    const base64 = img.dataUrl.split(',')[1];
+    const binaryStr = atob(base64);
+    const bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+    // Scale image to fill A4 width while keeping aspect ratio
+    const aspectRatio = img.height / img.width;
+    const displayW    = A4_W_EMU;
+    const displayH    = Math.round(A4_W_EMU * aspectRatio);
+
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: idx === 0 ? 0 : 200, after: 0 },
+        children: [
+          new ImageRun({
+            data: bytes,
+            transformation: { width: Math.round(displayW / 9144), height: Math.round(displayH / 9144) },
+            // EMU to points: divide by 914400 * 100 ... actually docx uses twips or points depending on version
+            // Use pixel-based: width/height in pixels at 96dpi
+          }),
+        ],
+      })
+    );
   }
 
-  for (const child of dom.body.children) walk(child);
-  return lines;
+  // Re-do with correct pixel dimensions for docx ImageRun
+  const children2 = [];
+  for (let idx = 0; idx < images.length; idx++) {
+    const img = images[idx];
+    const base64 = img.dataUrl.split(',')[1];
+    const binaryStr = atob(base64);
+    const bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+    // Target: fill ~17cm width (A4 with 2cm margins each side)
+    // docx ImageRun uses pixels at 96dpi internally
+    // 17cm = 6.69in = 6.69 * 96 = 642px display width
+    const displayWidthPx  = 642;
+    const displayHeightPx = Math.round(displayWidthPx * (img.height / img.width));
+
+    children2.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: idx === 0 ? 0 : 300, after: 0 },
+        children: [
+          new ImageRun({
+            data:           bytes,
+            transformation: { width: displayWidthPx, height: displayHeightPx },
+            type:           'jpg',
+          }),
+        ],
+      })
+    );
+  }
+
+  const doc = new Document({
+    creator: 'CVForge Studio',
+    title,
+    sections: [{
+      properties: {
+        page: {
+          size:   { width: 11906, height: 16838 }, // A4
+          margin: { top: 567, right: 567, bottom: 567, left: 567 }, // ~1cm margins
+        },
+      },
+      children: children2,
+    }],
+  });
+
+  const blob = await Packer.toBlob(doc);
+  if (!blob || blob.size < 500) throw new Error('DOCX generation produced an empty file.');
+  return blob;
 }
 
-// ─── DOCX → HTML string ──────────────────────────────────────────────────────
-async function docxToHTML(arrayBuffer) {
-  const mammoth = await import('mammoth');
-  const { value } = await mammoth.convertToHtml({ arrayBuffer });
-  return value;
+// ─── PDF → HTML: embed rendered images in a styled HTML page ─────────────────
+async function pdfToHtmlBlob(arrayBuffer, title) {
+  const images = await pdfToPageImages(arrayBuffer, 2.0);
+  if (images.length === 0) throw new Error('No pages could be rendered.');
+
+  const imgTags = images.map((img, i) => `
+    <div class="page">
+      <img src="${img.dataUrl}" alt="Page ${i + 1}" />
+    </div>
+  `).join('\n');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #f0f0f0;
+    font-family: Arial, sans-serif;
+    padding: 24px 16px;
+  }
+  .page {
+    background: #fff;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto 24px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .page img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .footer {
+    text-align: center;
+    color: #9ca3af;
+    font-size: 12px;
+    margin-top: 16px;
+  }
+</style>
+</head>
+<body>
+${imgTags}
+<div class="footer">Converted by CVForge Studio</div>
+</body>
+</html>`;
+
+  return new Blob([html], { type: 'text/html' });
 }
 
-// ─── DOCX → plain text ───────────────────────────────────────────────────────
+// ─── PDF → JPG (single page or all pages as zip) ────────────────────────────
+async function pdfToJpgBlob(arrayBuffer, pageNum = 1) {
+  const pdfjs = await getPdfJs();
+  const pdf   = await pdfjs.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+  const page  = await pdf.getPage(pageNum);
+  const vp    = page.getViewport({ scale: 2.5 });
+  const canvas = document.createElement('canvas');
+  canvas.width  = vp.width;
+  canvas.height = vp.height;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  await page.render({ canvasContext: ctx, viewport: vp }).promise;
+  return new Promise(res => canvas.toBlob(blob => res(blob), 'image/jpeg', 0.95));
+}
+
+// ─── DOCX → PDF via html2canvas (layout-preserving) ──────────────────────────
+async function docxToPdfBlob(arrayBuffer) {
+  const mammoth = await import('mammoth/mammoth.browser');
+  const { value: htmlBody } = await mammoth.convertToHtml({ arrayBuffer });
+
+  const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+    import('jspdf'),
+    import('html2canvas'),
+  ]);
+
+  const wrapper = document.createElement('div');
+  Object.assign(wrapper.style, {
+    position:      'fixed',
+    top:           '-9999999px',
+    left:          '-9999999px',
+    width:         '794px',
+    background:    '#ffffff',
+    color:         '#222222',
+    fontFamily:    '"Segoe UI", Calibri, Arial, sans-serif',
+    fontSize:      '13px',
+    lineHeight:    '1.7',
+    padding:       '56px 64px',
+    boxSizing:     'border-box',
+    zIndex:        '-999',
+    visibility:    'hidden',
+  });
+
+  wrapper.innerHTML = `
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      h1 { font-size:22px; font-weight:700; color:#1a1a2e;
+           border-bottom:2.5px solid #6c63ff; padding-bottom:6px;
+           margin:28px 0 12px; }
+      h2 { font-size:15px; font-weight:700; color:#1a1a2e;
+           text-transform:uppercase; letter-spacing:0.06em;
+           border-bottom:1px solid #ccc; padding-bottom:4px;
+           margin:22px 0 10px; }
+      h3 { font-size:13px; font-weight:700; color:#374151; margin:16px 0 6px; }
+      p  { margin:0 0 8px; color:#4b5563; line-height:1.65; }
+      ul,ol { padding-left:22px; margin:4px 0 10px; }
+      li { margin-bottom:4px; color:#4b5563; }
+      table { width:100%; border-collapse:collapse; margin:14px 0; font-size:12px; }
+      td,th { border:1px solid #e5e7eb; padding:6px 10px; }
+      th { background:#f9fafb; font-weight:700; }
+      strong,b { color:#1a1a2e; }
+      a { color:#6c63ff; }
+      hr { border:none; border-top:1px solid #e5e7eb; margin:18px 0; }
+    </style>
+    ${htmlBody}
+  `;
+  document.body.appendChild(wrapper);
+  if (document.fonts?.ready) await document.fonts.ready;
+  await new Promise(r => setTimeout(r, 300));
+
+  const canvas = await html2canvas(wrapper, {
+    scale: 2, useCORS: true, allowTaint: false,
+    backgroundColor: '#ffffff', logging: false,
+    width: 794, height: wrapper.scrollHeight,
+    windowWidth: 794, windowHeight: wrapper.scrollHeight,
+    x: 0, y: 0,
+  });
+  document.body.removeChild(wrapper);
+
+  const pdf  = new jsPDF({ unit: 'px', format: 'a4', orientation: 'portrait' });
+  const pdfW = pdf.internal.pageSize.getWidth();
+  const pdfH = pdf.internal.pageSize.getHeight();
+  const ratio  = pdfW / canvas.width;
+  const pageH  = Math.floor(pdfH / ratio);
+  const pages  = Math.ceil(canvas.height / pageH);
+
+  for (let i = 0; i < pages; i++) {
+    if (i > 0) pdf.addPage();
+    const srcY = i * pageH;
+    const srcH = Math.min(pageH, canvas.height - srcY);
+    const slice = document.createElement('canvas');
+    slice.width  = canvas.width;
+    slice.height = srcH;
+    slice.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+    pdf.addImage(slice.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pdfW, srcH * ratio);
+  }
+  return pdf.output('blob');
+}
+
+// ─── DOCX → TXT ──────────────────────────────────────────────────────────────
 async function docxToText(arrayBuffer) {
-  const mammoth = await import('mammoth');
+  const mammoth = await import('mammoth/mammoth.browser');
   const { value } = await mammoth.extractRawText({ arrayBuffer });
   return value;
 }
 
-// ─── Build properly structured DOCX from lines ───────────────────────────────
-async function buildDocx(lines, docTitle = 'Document') {
-  const {
-    Document, Packer, Paragraph, TextRun,
-    HeadingLevel, AlignmentType, BorderStyle, LevelFormat,
-  } = await import('docx');
+// ─── DOCX → HTML ─────────────────────────────────────────────────────────────
+async function docxToHtml(arrayBuffer, title) {
+  const mammoth = await import('mammoth/mammoth.browser');
+  const { value: body } = await mammoth.convertToHtml({ arrayBuffer });
+  return `<!DOCTYPE html><html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title>
+<style>
+  body{font-family:"Segoe UI",Arial,sans-serif;max-width:800px;margin:40px auto;
+       line-height:1.7;color:#222;padding:0 24px}
+  h1{font-size:22px;font-weight:700;color:#1a1a2e;
+     border-bottom:2px solid #6c63ff;padding-bottom:5px;margin:28px 0 12px}
+  h2{font-size:16px;font-weight:700;color:#1a1a2e;text-transform:uppercase;
+     letter-spacing:.06em;border-bottom:1px solid #ccc;padding-bottom:4px;margin:22px 0 10px}
+  h3{font-size:14px;font-weight:700;color:#374151;margin:16px 0 6px}
+  p{margin:0 0 10px;color:#4b5563}
+  ul,ol{padding-left:24px;margin:6px 0 12px}
+  li{margin-bottom:5px;color:#4b5563}
+  table{width:100%;border-collapse:collapse;margin:14px 0}
+  td,th{border:1px solid #e5e7eb;padding:8px 12px;font-size:13px}
+  th{background:#f9fafb;font-weight:700}
+  strong,b{color:#1a1a2e}
+</style></head>
+<body>${body}</body></html>`;
+}
 
-  // Numbering config
+// ─── TXT helpers ──────────────────────────────────────────────────────────────
+function txtToLines(raw) {
+  return raw.split('\n').map(line => {
+    const t = line.trim();
+    if (!t) return { text: '', type: 'empty' };
+    if (t === t.toUpperCase() && /[A-Z]{2,}/.test(t) && t.length > 2 && t.length < 55)
+      return { text: t, type: 'h2', bold: true };
+    if (/^[•▪\-–]\s/.test(t))
+      return { text: t.replace(/^[•▪\-–]\s+/, ''), type: 'bullet', cleanText: t.replace(/^[•▪\-–]\s+/, '') };
+    if (/^\d+[.)]\s/.test(t))
+      return { text: t.replace(/^\d+[.)]\s+/, ''), type: 'numbered', cleanText: t.replace(/^\d+[.)]\s+/, '') };
+    return { text: t, type: 'paragraph' };
+  });
+}
+
+async function txtToDocxBlob(lines, title) {
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel,
+          AlignmentType, BorderStyle, LevelFormat } = await import('docx');
+
   const numbering = {
     config: [
-      {
-        reference: 'cv-bullets',
-        levels: [{
-          level: 0,
-          format: LevelFormat.BULLET,
-          text: '\u2022',
+      { reference: 'bullets', levels: [{ level: 0, format: LevelFormat.BULLET, text: '\u2022',
           alignment: AlignmentType.LEFT,
-          style: {
-            run: { font: 'Calibri', size: 22 },
-            paragraph: { indent: { left: 720, hanging: 360 } },
-          },
-        }],
-      },
-      {
-        reference: 'cv-numbers',
-        levels: [{
-          level: 0,
-          format: LevelFormat.DECIMAL,
-          text: '%1.',
+          style: { paragraph: { indent: { left: 720, hanging: 360 } }, run: { font: 'Calibri', size: 22 } } }] },
+      { reference: 'numbers', levels: [{ level: 0, format: LevelFormat.DECIMAL, text: '%1.',
           alignment: AlignmentType.LEFT,
-          style: {
-            run: { font: 'Calibri', size: 22 },
-            paragraph: { indent: { left: 720, hanging: 360 } },
-          },
-        }],
-      },
+          style: { paragraph: { indent: { left: 720, hanging: 360 } }, run: { font: 'Calibri', size: 22 } } }] },
     ],
   };
 
-  const children = [];
-
-  for (const line of lines) {
-    const rawText = (line.cleanText || line.text || '').trim();
-    if (!rawText) {
-      children.push(new Paragraph({ children: [], spacing: { after: 80 } }));
-      continue;
-    }
-
-    switch (line.type) {
-      case 'h1':
-        children.push(new Paragraph({
-          heading: HeadingLevel.HEADING_1,
-          children: [new TextRun({ text: rawText, font: 'Calibri', size: 36, bold: true, color: '1a1a2e' })],
-          spacing: { before: 360, after: 160 },
-          border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '6c63ff', space: 4 } },
-        }));
-        break;
-
-      case 'h2':
-        children.push(new Paragraph({
-          heading: HeadingLevel.HEADING_2,
-          children: [new TextRun({ text: rawText, font: 'Calibri', size: 26, bold: true, color: '1a1a2e' })],
-          spacing: { before: 280, after: 120 },
-          border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: 'cccccc', space: 2 } },
-        }));
-        break;
-
-      case 'h3':
-        children.push(new Paragraph({
-          heading: HeadingLevel.HEADING_3,
-          children: [new TextRun({ text: rawText, font: 'Calibri', size: 24, bold: true, color: '374151' })],
-          spacing: { before: 200, after: 80 },
-        }));
-        break;
-
-      case 'list': {
-        const ref = line.ordered ? 'cv-numbers' : 'cv-bullets';
-        children.push(new Paragraph({
-          numbering: { reference: ref, level: 0 },
-          children: [new TextRun({ text: rawText, font: 'Calibri', size: 22, color: '374151' })],
-          spacing: { before: 40, after: 60 },
-        }));
-        break;
-      }
-
-      case 'separator':
-        children.push(new Paragraph({
-          children: [],
-          spacing: { before: 120, after: 120 },
-          border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: 'e5e7eb', space: 1 } },
-        }));
-        break;
-
-      default: {
-        // Detect ALL CAPS short lines as section headings (common in CVs)
-        const isAllCap = rawText.length > 2 && rawText.length < 50
-                         && rawText === rawText.toUpperCase()
-                         && /[A-Z]{2,}/.test(rawText);
-        if (isAllCap) {
-          children.push(new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            children: [new TextRun({ text: rawText, font: 'Calibri', size: 26, bold: true, color: '1a1a2e' })],
-            spacing: { before: 280, after: 120 },
-            border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: 'cccccc', space: 2 } },
-          }));
-        } else {
-          // Check for inline bold segments (e.g. "Role Name  Company  2020–2022")
-          const runs = buildInlineRuns(rawText, TextRun, line.bold);
-          children.push(new Paragraph({
-            children: runs,
-            spacing: { before: 40, after: 100 },
-          }));
-        }
-        break;
-      }
-    }
-  }
+  const children = lines.map(line => {
+    const raw = (line.cleanText || line.text || '').trim();
+    if (!raw || line.type === 'empty') return new Paragraph({ children: [], spacing: { after: 80 } });
+    if (line.type === 'h1') return new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      children: [new TextRun({ text: raw, font: 'Calibri', size: 36, bold: true, color: '1a1a2e' })],
+      spacing: { before: 400, after: 200 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '6c63ff', space: 4 } },
+    });
+    if (line.type === 'h2') return new Paragraph({
+      heading: HeadingLevel.HEADING_2,
+      children: [new TextRun({ text: raw.toUpperCase(), font: 'Calibri', size: 26, bold: true, color: '1a1a2e' })],
+      spacing: { before: 300, after: 120 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: 'cccccc', space: 4 } },
+    });
+    if (line.type === 'bullet') return new Paragraph({
+      numbering: { reference: 'bullets', level: 0 },
+      children: [new TextRun({ text: raw, font: 'Calibri', size: 22, color: '374151' })],
+      spacing: { before: 40, after: 60 },
+    });
+    if (line.type === 'numbered') return new Paragraph({
+      numbering: { reference: 'numbers', level: 0 },
+      children: [new TextRun({ text: raw, font: 'Calibri', size: 22, color: '374151' })],
+      spacing: { before: 40, after: 60 },
+    });
+    return new Paragraph({
+      children: [new TextRun({ text: raw, font: 'Calibri', size: 22, bold: !!line.bold,
+        color: line.bold ? '1a1a2e' : '374151' })],
+      spacing: { before: 40, after: 100 },
+    });
+  });
 
   const doc = new Document({
-    creator:  'CVForge Studio',
-    title:    docTitle,
-    numbering,
-    styles: {
-      default: {
-        document: { run: { font: 'Calibri', size: 22, color: '374151' } },
-      },
-      paragraphStyles: [
-        {
-          id: 'Heading1', name: 'Heading 1', basedOn: 'Normal', next: 'Normal',
-          quickFormat: true,
-          run:       { size: 36, bold: true, font: 'Calibri', color: '1a1a2e' },
-          paragraph: { spacing: { before: 360, after: 160 }, outlineLevel: 0 },
-        },
-        {
-          id: 'Heading2', name: 'Heading 2', basedOn: 'Normal', next: 'Normal',
-          quickFormat: true,
-          run:       { size: 26, bold: true, font: 'Calibri', color: '1a1a2e' },
-          paragraph: { spacing: { before: 280, after: 120 }, outlineLevel: 1 },
-        },
-        {
-          id: 'Heading3', name: 'Heading 3', basedOn: 'Normal', next: 'Normal',
-          quickFormat: true,
-          run:       { size: 24, bold: true, font: 'Calibri', color: '374151' },
-          paragraph: { spacing: { before: 200, after: 80 }, outlineLevel: 2 },
-        },
-      ],
-    },
+    creator: 'CVForge Studio', title, numbering,
     sections: [{
-      properties: {
-        page: {
-          size:   { width: 11906, height: 16838 },          // A4
-          margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 }, // ~2cm
-        },
-      },
+      properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 } } },
       children,
     }],
   });
-
   return Packer.toBlob(doc);
 }
 
-// ─── Split a line into TextRun[] with inline bold detection ──────────────────
-function buildInlineRuns(text, TextRun, defaultBold = false) {
-  // Support **bold** markdown markers
-  const segments = text.split(/(\*\*[^*]+\*\*)/g);
-  const runs = [];
-  for (const seg of segments) {
-    if (!seg) continue;
-    if (seg.startsWith('**') && seg.endsWith('**')) {
-      runs.push(new TextRun({ text: seg.slice(2, -2), font: 'Calibri', size: 22, bold: true, color: '1a1a2e' }));
-    } else {
-      runs.push(new TextRun({ text: seg, font: 'Calibri', size: 22, bold: defaultBold, color: '374151' }));
+async function txtToPdfBlob(lines) {
+  const { default: jsPDF } = await import('jspdf');
+  const pdf  = new jsPDF({ unit: 'mm', format: 'a4' });
+  const ML   = 20;
+  const maxW = pdf.internal.pageSize.getWidth() - ML * 2;
+  let y = 25;
+  const addY = extra => { y += extra; if (y > 272) { pdf.addPage(); y = 22; } };
+
+  for (const line of lines) {
+    const t = (line.text || '').trim();
+    if (!t) { addY(4); continue; }
+    switch (line.type) {
+      case 'h1':
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(17); pdf.setTextColor(26,26,46);
+        pdf.text(t, ML, y);
+        pdf.setDrawColor(108,99,255); pdf.setLineWidth(0.6); pdf.line(ML, y+1.5, ML+maxW, y+1.5);
+        addY(10); break;
+      case 'h2':
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(12); pdf.setTextColor(26,26,46);
+        pdf.text(t.toUpperCase(), ML, y);
+        pdf.setDrawColor(180,180,180); pdf.setLineWidth(0.3); pdf.line(ML, y+1.5, ML+maxW, y+1.5);
+        addY(8); break;
+      case 'h3':
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(11); pdf.setTextColor(55,65,81);
+        pdf.text(t, ML, y); addY(7); break;
+      case 'bullet':
+      case 'numbered': {
+        pdf.setFont('helvetica','normal'); pdf.setFontSize(10.5); pdf.setTextColor(75,85,99);
+        const wrapped = pdf.splitTextToSize((line.type==='bullet'?'• ':'')+t, maxW-6);
+        for (const wl of wrapped) { pdf.text(wl, ML+4, y); addY(5); }
+        break;
+      }
+      default: {
+        pdf.setFont('helvetica','normal'); pdf.setFontSize(10.5); pdf.setTextColor(75,85,99);
+        const wrapped = pdf.splitTextToSize(t, maxW);
+        for (const wl of wrapped) { pdf.text(wl, ML, y); addY(5.2); }
+        addY(1.5); break;
+      }
     }
   }
-  return runs.length ? runs : [new TextRun({ text, font: 'Calibri', size: 22, color: '374151' })];
-}
-
-// ─── HTML → PDF via html2canvas + jsPDF ──────────────────────────────────────
-async function htmlToPdfBlob(htmlBody) {
-  const { default: jsPDF }       = await import('jspdf');
-  const { default: html2canvas } = await import('html2canvas');
-
-  const div = document.createElement('div');
-  div.style.cssText = `
-    position:fixed;top:-99999px;left:-99999px;
-    width:794px;background:#fff;color:#222;
-    font-family:"Segoe UI",Arial,sans-serif;
-    font-size:13px;line-height:1.7;
-    padding:56px 64px;box-sizing:border-box;
-  `;
-  div.innerHTML = `
-    <style>
-      *{box-sizing:border-box}
-      h1{font-size:22px;font-weight:700;color:#1a1a2e;
-         border-bottom:2.5px solid #6c63ff;padding-bottom:5px;margin:20px 0 10px}
-      h2{font-size:15px;font-weight:700;color:#1a1a2e;
-         text-transform:uppercase;letter-spacing:.05em;
-         border-bottom:1px solid #ccc;padding-bottom:4px;margin:18px 0 8px}
-      h3{font-size:13px;font-weight:700;color:#374151;margin:14px 0 5px}
-      p{margin:0 0 8px;color:#4b5563}
-      ul,ol{padding-left:20px;margin:4px 0 10px}
-      li{margin-bottom:4px;color:#4b5563}
-      table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px}
-      td,th{border:1px solid #e5e7eb;padding:6px 10px}
-      th{background:#f9fafb;font-weight:700}
-      strong,b{color:#1a1a2e}
-      a{color:#6c63ff;text-decoration:none}
-      hr{border:none;border-top:1px solid #e5e7eb;margin:16px 0}
-    </style>
-    ${htmlBody}
-  `;
-  document.body.appendChild(div);
-
-  const canvas = await html2canvas(div, { scale: 2, useCORS: true, logging: false });
-  document.body.removeChild(div);
-
-  const imgData = canvas.toDataURL('image/jpeg', 0.95);
-  const pdf     = new jsPDF({ unit: 'px', format: 'a4', orientation: 'portrait' });
-  const pdfW    = pdf.internal.pageSize.getWidth();
-  const pdfH    = pdf.internal.pageSize.getHeight();
-  const imgH    = (canvas.height * pdfW) / canvas.width;
-  let y = 0;
-
-  while (y < imgH) {
-    if (y > 0) pdf.addPage();
-    pdf.addImage(imgData, 'JPEG', 0, -y, pdfW, imgH);
-    y += pdfH;
-  }
-
   return pdf.output('blob');
 }
 
-// ─── Image → PDF ─────────────────────────────────────────────────────────────
-async function imageToPDFBlob(file) {
+// ─── Image → PDF ──────────────────────────────────────────────────────────────
+async function imageToPdfBlob(file) {
   const { PDFDocument } = await import('pdf-lib');
   const buf    = await readAsArrayBuffer(file);
   const pdfDoc = await PDFDocument.create();
   const isJpg  = file.type === 'image/jpeg';
   const img    = isJpg ? await pdfDoc.embedJpg(buf) : await pdfDoc.embedPng(buf);
-  const a4     = { width: 595, height: 842 };
-  const scale  = Math.min(a4.width / img.width, a4.height / img.height, 1);
-  const w      = img.width  * scale;
-  const h      = img.height * scale;
-  const page   = pdfDoc.addPage([a4.width, a4.height]);
-  page.drawImage(img, { x: (a4.width - w) / 2, y: (a4.height - h) / 2, width: w, height: h });
-  return new Blob([await pdfDoc.save()], { type: 'application/pdf' });
-}
-
-// ─── TXT → structured lines ───────────────────────────────────────────────────
-function txtToLines(raw) {
-  return raw.split('\n').map(line => {
-    const t = line.trim();
-    if (!t) return { text: '', type: 'empty' };
-    if (t === t.toUpperCase() && t.length > 2 && t.length < 50 && /[A-Z]{2,}/.test(t))
-      return { text: t, type: 'h2', bold: true };
-    if (/^[•▪\-–]\s/.test(t)) return { text: t.replace(/^[•▪\-–]\s+/,''), type: 'list', cleanText: t.replace(/^[•▪\-–]\s+/,'') };
-    if (/^\d+\.\s/.test(t))   return { text: t.replace(/^\d+\.\s+/,''), type: 'list', ordered: true, cleanText: t.replace(/^\d+\.\s+/,'') };
-    return { text: t, type: 'paragraph' };
-  });
-}
-
-// ─── TXT → PDF ───────────────────────────────────────────────────────────────
-async function txtToPdf(lines) {
-  const { default: jsPDF } = await import('jspdf');
-  const pdf    = new jsPDF({ unit: 'mm', format: 'a4' });
-  const margin = 20;
-  const maxW   = pdf.internal.pageSize.getWidth() - margin * 2;
-  let y = 25;
-
-  const nl = (extra = 0) => { y += extra; if (y > 272) { pdf.addPage(); y = 25; } };
-
-  for (const line of lines) {
-    const t = line.text || '';
-    if (!t) { nl(4); continue; }
-
-    switch (line.type) {
-      case 'h1':
-        pdf.setFont('helvetica','bold'); pdf.setFontSize(18); pdf.setTextColor(26,26,46);
-        pdf.text(t, margin, y);
-        pdf.setDrawColor(108,99,255); pdf.setLineWidth(0.5);
-        pdf.line(margin, y+1.5, margin+maxW, y+1.5);
-        nl(10);
-        break;
-      case 'h2':
-        pdf.setFont('helvetica','bold'); pdf.setFontSize(13); pdf.setTextColor(26,26,46);
-        pdf.text(t.toUpperCase(), margin, y);
-        pdf.setDrawColor(180,180,180); pdf.setLineWidth(0.3);
-        pdf.line(margin, y+1.5, margin+maxW, y+1.5);
-        nl(8);
-        break;
-      case 'h3':
-        pdf.setFont('helvetica','bold'); pdf.setFontSize(12); pdf.setTextColor(55,65,81);
-        pdf.text(t, margin, y);
-        nl(7);
-        break;
-      case 'list': {
-        pdf.setFont('helvetica','normal'); pdf.setFontSize(11); pdf.setTextColor(75,85,99);
-        const wrapped = pdf.splitTextToSize(`\u2022  ${t}`, maxW - 8);
-        for (const wl of wrapped) { nl(0); pdf.text(wl, margin+4, y); nl(5.5); }
-        break;
-      }
-      default: {
-        pdf.setFont('helvetica','normal'); pdf.setFontSize(11); pdf.setTextColor(75,85,99);
-        const wrapped = pdf.splitTextToSize(t, maxW);
-        for (const wl of wrapped) { nl(0); pdf.text(wl, margin, y); nl(5.5); }
-        nl(1.5);
-        break;
-      }
-    }
-  }
-
-  return pdf.output('blob');
+  const A4     = { w: 595.28, h: 841.89 };
+  const scale  = Math.min(A4.w / img.width, A4.h / img.height, 1);
+  const w = img.width * scale, h = img.height * scale;
+  const page = pdfDoc.addPage([A4.w, A4.h]);
+  page.drawImage(img, { x:(A4.w-w)/2, y:(A4.h-h)/2, width:w, height:h });
+  return new Blob([await pdfDoc.save()], { type:'application/pdf' });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -513,157 +532,123 @@ async function txtToPdf(lines) {
 export async function convertFile(file, targetFormat) {
   const ext      = file.name.split('.').pop().toLowerCase();
   const baseName = file.name.replace(/\.[^.]+$/, '');
-  const target   = targetFormat.toLowerCase();
+  const target   = targetFormat.toLowerCase().trim();
 
-  // PDF → DOCX  ✅ with proper layout
+  // ── PDF → DOCX  (image-embed, preserves full layout/colors) ────────────────
   if (ext === 'pdf' && target === 'docx') {
-    const buf   = await readAsArrayBuffer(file);
-    const lines = await extractPdfStructured(buf);
-    const blob  = await buildDocx(lines, baseName);
+    const buf  = await readAsArrayBuffer(file);
+    const blob = await pdfToDocxBlob(buf, baseName);
     return { blob, filename: `${baseName}.docx` };
   }
 
-  // DOCX / DOC → PDF  ✅ with proper layout
-  if (['docx','doc'].includes(ext) && target === 'pdf') {
+  // ── PDF → HTML ──────────────────────────────────────────────────────────────
+  if (ext === 'pdf' && target === 'html') {
     const buf  = await readAsArrayBuffer(file);
-    const html = await docxToHTML(buf);
-    const blob = await htmlToPdfBlob(html);
-    return { blob, filename: `${baseName}.pdf` };
+    const blob = await pdfToHtmlBlob(buf, baseName);
+    return { blob, filename: `${baseName}.html` };
   }
 
-  // DOCX → TXT
-  if (['docx','doc'].includes(ext) && target === 'txt') {
-    const buf  = await readAsArrayBuffer(file);
-    const text = await docxToText(buf);
-    return { blob: new Blob([text], { type: 'text/plain' }), filename: `${baseName}.txt` };
-  }
-
-  // DOCX → HTML  ✅ styled
-  if (['docx','doc'].includes(ext) && target === 'html') {
-    const buf  = await readAsArrayBuffer(file);
-    const body = await docxToHTML(buf);
-    const full = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<style>body{font-family:'Segoe UI',Arial,sans-serif;max-width:800px;margin:40px auto;
-line-height:1.7;color:#222;padding:0 24px}
-h1{font-size:22px;font-weight:700;color:#1a1a2e;border-bottom:2px solid #6c63ff;
-padding-bottom:4px;margin:24px 0 12px}
-h2{font-size:16px;font-weight:700;color:#1a1a2e;text-transform:uppercase;
-letter-spacing:.05em;border-bottom:1px solid #ccc;padding-bottom:3px;margin:20px 0 8px}
-h3{font-size:14px;font-weight:700;color:#374151;margin:16px 0 6px}
-p{margin:0 0 10px;color:#4b5563}ul,ol{padding-left:24px;margin:4px 0 12px}
-li{margin-bottom:5px;color:#4b5563}
-table{width:100%;border-collapse:collapse;margin:14px 0}
-td,th{border:1px solid #e5e7eb;padding:8px 12px;font-size:13px}
-th{background:#f9fafb;font-weight:700}
-</style></head><body>${body}</body></html>`;
-    return { blob: new Blob([full], { type: 'text/html' }), filename: `${baseName}.html` };
-  }
-
-  // PDF → TXT
+  // ── PDF → TXT ───────────────────────────────────────────────────────────────
   if (ext === 'pdf' && target === 'txt') {
     const buf   = await readAsArrayBuffer(file);
-    const pages = await extractPdfText(buf);
-    return {
-      blob: new Blob([pages.join('\n\n--- Page Break ---\n\n')], { type: 'text/plain' }),
-      filename: `${baseName}.txt`,
-    };
+    const pages = await pdfToPlainText(buf);
+    return { blob: new Blob([pages.join('\n\n')], { type:'text/plain' }), filename: `${baseName}.txt` };
   }
 
-  // PDF → HTML  ✅ structured
-  if (ext === 'pdf' && target === 'html') {
-    const buf   = await readAsArrayBuffer(file);
-    const lines = await extractPdfStructured(buf);
-    const body  = lines.map(l => {
-      if (!l.text) return '';
-      if (l.type === 'h1')   return `<h1>${l.text}</h1>`;
-      if (l.type === 'h2')   return `<h2>${l.text}</h2>`;
-      if (l.type === 'h3')   return `<h3>${l.text}</h3>`;
-      if (l.type === 'list') return `<li>${l.cleanText || l.text}</li>`;
-      return `<p>${l.text}</p>`;
-    }).join('\n');
-    const full = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<style>body{font-family:'Segoe UI',Arial,sans-serif;max-width:800px;margin:40px auto;
-line-height:1.7;color:#222;padding:0 24px}
-h1{font-size:22px;font-weight:700;color:#1a1a2e;border-bottom:2px solid #6c63ff;
-padding-bottom:4px;margin:24px 0 12px}
-h2{font-size:16px;font-weight:700;color:#1a1a2e;text-transform:uppercase;
-letter-spacing:.05em;border-bottom:1px solid #ccc;padding-bottom:3px;margin:20px 0 8px}
-h3{font-size:14px;font-weight:700;color:#374151;margin:16px 0 6px}
-p{margin:0 0 10px;color:#4b5563}li{margin-bottom:5px;color:#4b5563}
-</style></head><body>${body}</body></html>`;
-    return { blob: new Blob([full], { type: 'text/html' }), filename: `${baseName}.html` };
-  }
-
-  // PDF → JPG
+  // ── PDF → JPG ───────────────────────────────────────────────────────────────
   if (ext === 'pdf' && target === 'jpg') {
     const buf  = await readAsArrayBuffer(file);
-    const blob = await renderPdfPageToBlob(buf, 1, 2);
+    const blob = await pdfToJpgBlob(buf, 1);
     return { blob, filename: `${baseName}_page1.jpg` };
   }
 
-  // JPG/PNG → PDF
-  if (['jpg','jpeg','png'].includes(ext) && target === 'pdf') {
-    const blob = await imageToPDFBlob(file);
+  // ── DOCX → PDF ──────────────────────────────────────────────────────────────
+  if (['docx','doc'].includes(ext) && target === 'pdf') {
+    const buf  = await readAsArrayBuffer(file);
+    const blob = await docxToPdfBlob(buf);
     return { blob, filename: `${baseName}.pdf` };
   }
 
-  // TXT → DOCX
+  // ── DOCX → TXT ──────────────────────────────────────────────────────────────
+  if (['docx','doc'].includes(ext) && target === 'txt') {
+    const buf  = await readAsArrayBuffer(file);
+    const text = await docxToText(buf);
+    return { blob: new Blob([text], { type:'text/plain' }), filename: `${baseName}.txt` };
+  }
+
+  // ── DOCX → HTML ─────────────────────────────────────────────────────────────
+  if (['docx','doc'].includes(ext) && target === 'html') {
+    const buf  = await readAsArrayBuffer(file);
+    const html = await docxToHtml(buf, baseName);
+    return { blob: new Blob([html], { type:'text/html' }), filename: `${baseName}.html` };
+  }
+
+  // ── TXT → DOCX ──────────────────────────────────────────────────────────────
   if (ext === 'txt' && target === 'docx') {
     const raw   = await readAsText(file);
     const lines = txtToLines(raw);
-    const blob  = await buildDocx(lines, baseName);
+    const blob  = await txtToDocxBlob(lines, baseName);
     return { blob, filename: `${baseName}.docx` };
   }
 
-  // TXT → PDF
+  // ── TXT → PDF ───────────────────────────────────────────────────────────────
   if (ext === 'txt' && target === 'pdf') {
     const raw   = await readAsText(file);
     const lines = txtToLines(raw);
-    const blob  = await txtToPdf(lines);
+    const blob  = await txtToPdfBlob(lines);
     return { blob, filename: `${baseName}.pdf` };
   }
 
-  throw new Error(`Conversion .${ext} → .${target} is not supported.`);
+  // ── Image → PDF ─────────────────────────────────────────────────────────────
+  if (['jpg','jpeg','png'].includes(ext) && target === 'pdf') {
+    const blob = await imageToPdfBlob(file);
+    return { blob, filename: `${baseName}.pdf` };
+  }
+
+  throw new Error(`Conversion from .${ext.toUpperCase()} to .${target.toUpperCase()} is not supported yet.`);
 }
 
 export function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
-  const a   = Object.assign(document.createElement('a'), { href: url, download: filename });
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  const a   = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 8000);
 }
 
 export function getTargetFormats(ext) {
   const map = {
     pdf:  [
-      { value: 'docx', label: 'Word Document (.docx) — with layout' },
-      { value: 'txt',  label: 'Plain Text (.txt)' },
-      { value: 'html', label: 'HTML Page (.html)' },
-      { value: 'jpg',  label: 'Image — first page (.jpg)' },
+      { value:'docx', label:'Word Document (.docx) — layout preserved' },
+      { value:'txt',  label:'Plain Text (.txt)' },
+      { value:'html', label:'HTML Page (.html) — layout preserved' },
+      { value:'jpg',  label:'Image — first page (.jpg)' },
     ],
     docx: [
-      { value: 'pdf',  label: 'PDF Document (.pdf) — with layout' },
-      { value: 'txt',  label: 'Plain Text (.txt)' },
-      { value: 'html', label: 'HTML Page (.html)' },
+      { value:'pdf',  label:'PDF Document (.pdf) — layout preserved' },
+      { value:'txt',  label:'Plain Text (.txt)' },
+      { value:'html', label:'HTML Page (.html)' },
     ],
     doc: [
-      { value: 'pdf',  label: 'PDF Document (.pdf) — with layout' },
-      { value: 'txt',  label: 'Plain Text (.txt)' },
-      { value: 'html', label: 'HTML Page (.html)' },
+      { value:'pdf',  label:'PDF Document (.pdf) — layout preserved' },
+      { value:'txt',  label:'Plain Text (.txt)' },
+      { value:'html', label:'HTML Page (.html)' },
     ],
     txt:  [
-      { value: 'pdf',  label: 'PDF Document (.pdf)' },
-      { value: 'docx', label: 'Word Document (.docx)' },
+      { value:'pdf',  label:'PDF Document (.pdf)' },
+      { value:'docx', label:'Word Document (.docx)' },
     ],
-    jpg:  [{ value: 'pdf', label: 'PDF Document (.pdf)' }],
-    jpeg: [{ value: 'pdf', label: 'PDF Document (.pdf)' }],
-    png:  [{ value: 'pdf', label: 'PDF Document (.pdf)' }],
+    jpg:  [{ value:'pdf', label:'PDF Document (.pdf)' }],
+    jpeg: [{ value:'pdf', label:'PDF Document (.pdf)' }],
+    png:  [{ value:'pdf', label:'PDF Document (.pdf)' }],
   };
   return map[ext?.toLowerCase()] || [];
 }
 
 export function formatFileSize(bytes) {
-  if (bytes < 1024)        return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  if (!bytes)          return '0 B';
+  if (bytes < 1024)    return `${bytes} B`;
+  if (bytes < 1048576) return `${(bytes/1024).toFixed(1)} KB`;
+  return `${(bytes/1048576).toFixed(2)} MB`;
 }

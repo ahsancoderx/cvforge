@@ -25,33 +25,65 @@ function Label({ children }) {
   );
 }
 
-function Field({ label, value, onChange, multiline, rows, placeholder, type = 'text', helper }) {
+function Field({
+  label,
+  value,
+  onChange,
+  multiline,
+  rows,
+  placeholder,
+  type = 'text',
+  helper
+}) {
   return (
     <Box sx={{ mb: 1.3 }}>
       {label && <Label>{label}</Label>}
+
       <TextField
-        fullWidth size="small" type={type}
+        fullWidth
+        size="small"
+        type={type}
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
-        multiline={multiline} rows={rows || 1}
+        multiline={multiline}
+        rows={rows || 1}
         placeholder={placeholder || ''}
         helperText={helper}
-        FormHelperTextProps={{ sx: { fontSize: '0.65rem', color: '#8b8fa8', ml: 0, mt: 0.3 } }}
+        slotProps={{
+          formHelperText: {
+            sx: {
+              fontSize: '0.65rem',
+              color: '#8b8fa8',
+              ml: 0,
+              mt: 0.3,
+            },
+          },
+        }}
         sx={{
           '& .MuiOutlinedInput-root': {
             fontSize: '0.83rem',
-            '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
-            '&:hover fieldset': { borderColor: 'rgba(108,99,255,0.4)' },
-            '&.Mui-focused fieldset': { borderColor: '#6c63ff' },
+            '& fieldset': {
+              borderColor: 'rgba(255,255,255,0.1)',
+            },
+            '&:hover fieldset': {
+              borderColor: 'rgba(108,99,255,0.4)',
+            },
+            '&.Mui-focused fieldset': {
+              borderColor: '#6c63ff',
+            },
           },
-          '& .MuiInputBase-input': { color: '#f0f0f8' },
-          '& .MuiInputBase-input::placeholder': { color: '#6b7280', opacity: 1 },
+          '& .MuiInputBase-input': {
+            color: '#f0f0f8',
+          },
+          '& .MuiInputBase-input::placeholder': {
+            color: '#6b7280',
+            opacity: 1,
+          },
         }}
       />
     </Box>
   );
 }
-
 function TwoCol({ children }) {
   return <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>{children}</Box>;
 }
