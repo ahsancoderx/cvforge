@@ -1,22 +1,23 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Turbopack config (Next.js 16 default bundler)
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
   turbopack: {
     resolveAlias: {
-      // Use browser build of mammoth (not the Node.js build)
-      'mammoth': 'mammoth/mammoth.browser',
-      // pdfjs tries to use canvas — ignore it in browser
-      'canvas': { browser: './empty-module.js' },
+      mammoth: 'mammoth/mammoth.browser',
+      canvas: { browser: './empty-module.js' },
     },
   },
 
-  // Webpack fallback (for --webpack flag or CI builds)
-  webpack: (config, { isServer }) => {
-    config.resolve.alias.canvas = false;
-    if (isServer) {
-      config.resolve.alias['pdfjs-dist/legacy/build/pdf'] = false;
-    }
-    config.resolve.alias['mammoth'] = 'mammoth/mammoth.browser';
+  webpack: (config: any, { isServer }: { isServer: boolean }) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      canvas: false,
+      mammoth: 'mammoth/mammoth.browser',
+      ...(isServer
+        ? { 'pdfjs-dist/legacy/build/pdf': false }
+        : {}),
+    };
+
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
@@ -25,6 +26,7 @@ const nextConfig = {
       zlib: false,
       buffer: false,
     };
+
     return config;
   },
 
@@ -43,4 +45,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

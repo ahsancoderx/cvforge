@@ -35,7 +35,7 @@ export const metadata = {
     siteName: 'CVStudio',
     images: [
       {
-        url: '/og-image.png', 
+        url: '/cvlogo.png', 
         width: 1200,
         height: 630,
       },
@@ -49,7 +49,7 @@ export const metadata = {
     title: 'CVStudio — Resume Builder',
     description:
       'Create modern, ATS-friendly resumes in minutes.',
-    images: ['/og-image.png'],
+    images: ['/cvlogo.png'],
   },
 
   robots: {
