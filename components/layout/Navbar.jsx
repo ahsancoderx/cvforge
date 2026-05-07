@@ -19,7 +19,7 @@ const LINKS = [
   { label: 'Home',      href: '/',          icon: <HomeRoundedIcon sx={{ fontSize: 16 }} /> },
   { label: 'Dashboard', href: '/dashboard', icon: <DashboardRoundedIcon sx={{ fontSize: 16 }} /> },
   { label: 'Templates', href: '/template',  icon: <StyleRoundedIcon sx={{ fontSize: 16 }} /> },
-  { label: 'Editor',    href: '/editor',    icon: <EditNoteRoundedIcon sx={{ fontSize: 16 }} /> },
+  { label: 'Editor',    href: '/editor/minimal',    icon: <EditNoteRoundedIcon sx={{ fontSize: 16 }} /> },
   { label: 'ATS Check', href: '/ats',       icon: <FactCheckRoundedIcon sx={{ fontSize: 16 }} /> },
 
   // NEW CONVERTER PAGE
@@ -129,7 +129,7 @@ export default function Navbar() {
             {!isMobile && (
               <Button
                 variant="contained"
-                onClick={() => router.push('/editor')}
+                onClick={() => router.push('/template')}
                 sx={{
                   background: 'linear-gradient(135deg, #6c63ff, #a78bfa)',
                   px: 2.5, py: 0.85,

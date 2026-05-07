@@ -245,10 +245,15 @@ export default function TemplatesPage() {
   const [activeCategory, setActiveCategory] = useState('All');
 
   function useTemplate(id) {
-    const current = loadResume() || { ...DEFAULT_RESUME };
-    saveResume({ ...current, template: id });
-    router.push('/editor');
-  }
+  const current = loadResume() || { ...DEFAULT_RESUME };
+
+  saveResume({
+    ...current,
+    template: id,
+  });
+
+  router.push(`/editor/${id}`);
+}
 
   const filtered = activeCategory === 'All'
     ? TEMPLATES

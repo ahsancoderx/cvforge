@@ -498,7 +498,7 @@ export default function HomePage() {
           <Button
             variant="contained" size="large"
             endIcon={<ArrowForwardRoundedIcon />}
-            onClick={() => router.push('/editor')}
+            onClick={() => router.push('/template')}
             sx={{
               background: 'linear-gradient(135deg, #6c63ff, #a78bfa)',
               px: 3.5, py: 1.2, borderRadius: '12px',
@@ -678,7 +678,7 @@ export default function HomePage() {
         <Button
           variant="contained" size="large"
           endIcon={<ArrowForwardRoundedIcon />}
-          onClick={() => router.push('/editor')}
+          onClick={() => router.push('/template')}
           sx={{
             background: 'linear-gradient(135deg, #6c63ff, #a78bfa)',
             px: 4, py: 1.3, borderRadius: '12px',
