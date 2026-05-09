@@ -29,10 +29,17 @@ export default function RightPreview({ resume, saved, onDownloadClick, isMobile 
   const scale = zoom / 100;
 
   const tplNames = {
-    minimal:'Minimal', corporate:'Corporate', creative:'Creative', tech:'Tech Pro',
-    purple:'Purple Elegance', slate:'Executive Slate', marine:'Marine Blue',
-    crimson:'Crimson Pro', forest:'Forest Green',
-  };
+  'ats-resume-template':'ATS Resume Template',
+  'corporate-resume-template':'Corporate Resume Template',
+  'creative-resume-template':'Creative Resume Template',
+  'software-engineer-resume':'Software Engineer Resume',
+  'modern-professional-resume':'Modern Professional Resume',
+  'executive-resume-template':'Executive Resume Template',
+  'business-resume-template':'Business Resume Template',
+  'modern-cv-template':'Modern CV Template',
+  'clean-resume-template':'Clean Resume Template',
+  'academic-cv-template':'Academic CV Template',
+};
 
   return (
     <Box sx={{

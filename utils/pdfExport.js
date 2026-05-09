@@ -44,16 +44,16 @@ import {
 } from '../components/template/AllTemplates';
 
 const TEMPLATE_MAP = {
-  minimal:   MinimalTemplate,
-  corporate: CorporateTemplate,
-  creative:  CreativeTemplate,
-  tech:      TechTemplate,
-  purple:    PurpleTemplate,
-  slate:     SlateTemplate,
-  marine:    MarineTemplate,
-  crimson:   CrimsonTemplate,
-  forest:    ForestTemplate,
-  navya:     NavyaTemplate,
+  'ats-resume-template':        MinimalTemplate,
+  'corporate-resume-template':  CorporateTemplate,
+  'creative-resume-template':   CreativeTemplate,
+  'software-engineer-resume':   TechTemplate,
+  'modern-professional-resume': PurpleTemplate,
+  'executive-resume-template':  SlateTemplate,
+  'business-resume-template':   MarineTemplate,
+  'modern-cv-template':         CrimsonTemplate,
+  'clean-resume-template':      ForestTemplate,
+  'academic-cv-template':       NavyaTemplate,
 };
 
 // ── A4 dimensions ─────────────────────────────────────────────
@@ -265,18 +265,76 @@ function addHyperlinks(pdf, resume, scale, pageW, pageH, canvasW) {
 
   // Different templates have different header heights — approximate positions
   const headerOffsets = {
-    minimal:   { email: 28, phone: 32, linkedin: 36, github: 40 },
-    corporate: { email: 26, phone: 30, linkedin: 34, github: 34 },
-    creative:  { email: 30, phone: 34, linkedin: 30, github: 30 },
-    tech:      { email: 28, phone: 32, linkedin: 32, github: 36 },
-    purple:    { email: 55, phone: 65, linkedin: 75, github: 85 },
-    slate:     { email: 28, phone: 32, linkedin: 36, github: 36 },
-    marine:    { email: 55, phone: 62, linkedin: 70, github: 78 },
-    crimson:   { email: 26, phone: 26, linkedin: 26, github: 26 },
-    forest:    { email: 26, phone: 26, linkedin: 30, github: 34 },
-    navya:     { email: 24, phone: 24, linkedin: 24, github: 24 },
-  };
+  'ats-resume-template': {
+    email: 28,
+    phone: 32,
+    linkedin: 36,
+    github: 40
+  },
 
+  'corporate-resume-template': {
+    email: 26,
+    phone: 30,
+    linkedin: 34,
+    github: 34
+  },
+
+  'creative-resume-template': {
+    email: 30,
+    phone: 34,
+    linkedin: 30,
+    github: 30
+  },
+
+  'software-engineer-resume': {
+    email: 28,
+    phone: 32,
+    linkedin: 32,
+    github: 36
+  },
+
+  'modern-professional-resume': {
+    email: 55,
+    phone: 65,
+    linkedin: 75,
+    github: 85
+  },
+
+  'executive-resume-template': {
+    email: 28,
+    phone: 32,
+    linkedin: 36,
+    github: 36
+  },
+
+  'business-resume-template': {
+    email: 55,
+    phone: 62,
+    linkedin: 70,
+    github: 78
+  },
+
+  'modern-cv-template': {
+    email: 26,
+    phone: 26,
+    linkedin: 26,
+    github: 26
+  },
+
+  'clean-resume-template': {
+    email: 26,
+    phone: 26,
+    linkedin: 30,
+    github: 34
+  },
+
+  'academic-cv-template': {
+    email: 24,
+    phone: 24,
+    linkedin: 24,
+    github: 24
+  },
+};
   const off = headerOffsets[template] || headerOffsets.minimal;
 
   if (p.email)    addLink(p.email,    off.email,   4);

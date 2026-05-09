@@ -79,16 +79,16 @@ export default function LeftPanel({ resume, handlers, onDownloadClick, isMobile 
           }}
         >
           {[
-  { value:'minimal',   label:'Minimal' },
-  { value:'corporate', label:'Corporate' },
-  { value:'creative',  label:'Creative' },
-  { value:'tech',      label:'Tech Pro' },
-  { value:'purple',    label:'Purple Elegance' },
-  { value:'slate',     label:'Executive Slate' },
-  { value:'marine',    label:'Marine Blue' },
-  { value:'crimson',   label:'Crimson Pro' },
-  { value:'forest',    label:'Forest Green' },
-  { value: 'navya',     label: 'Navya Classic' },
+  { value:'ats-resume-template',        label:'ATS Resume Template' },
+{ value:'corporate-resume-template',  label:'Corporate Resume Template' },
+{ value:'creative-resume-template',   label:'Creative Resume Template' },
+{ value:'software-engineer-resume',   label:'Software Engineer Resume' },
+{ value:'modern-professional-resume', label:'Modern Professional Resume' },
+{ value:'executive-resume-template',  label:'Executive Resume Template' },
+{ value:'business-resume-template',   label:'Business Resume Template' },
+{ value:'modern-cv-template',         label:'Modern CV Template' },
+{ value:'clean-resume-template',      label:'Clean Resume Template' },
+{ value:'academic-cv-template',       label:'Academic CV Template' },
 ].map(t => <MenuItem key={t.value} value={t.value} sx={{ fontSize:'0.78rem' }}>{t.label}</MenuItem>)}
         </Select>
 

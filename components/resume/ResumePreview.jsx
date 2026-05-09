@@ -13,16 +13,16 @@ import {
 } from '../template/AllTemplates';   
 
 const MAP = {
-  minimal:   MinimalTemplate,
-  corporate: CorporateTemplate,
-  creative:  CreativeTemplate,
-  tech:      TechTemplate,
-  purple:    PurpleTemplate,
-  slate:     SlateTemplate,
-  marine:    MarineTemplate,
-  crimson:   CrimsonTemplate,
-  forest:    ForestTemplate,
-  navya:     NavyaTemplate,
+  'ats-resume-template':        MinimalTemplate,
+  'corporate-resume-template':  CorporateTemplate,
+  'creative-resume-template':   CreativeTemplate,
+  'software-engineer-resume':   TechTemplate,
+  'modern-professional-resume': PurpleTemplate,
+  'executive-resume-template':  SlateTemplate,
+  'business-resume-template':   MarineTemplate,
+  'modern-cv-template':         CrimsonTemplate,
+  'clean-resume-template':      ForestTemplate,
+  'academic-cv-template':       NavyaTemplate,
 };
 
 export default function ResumePreview({ resume }) {

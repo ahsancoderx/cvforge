@@ -13,45 +13,121 @@ import {
 
 
 // ─── Template map ──────────────────────────────────────────────
+// ─── Template map (SEO optimized keys without changing logic) ───
 const TPL_MAP = {
-  minimal:   MinimalTemplate,
-  corporate: CorporateTemplate,
-  creative:  CreativeTemplate,
-  tech:      TechTemplate,
-  purple:    PurpleTemplate,
-  slate:     SlateTemplate,
-  marine:    MarineTemplate,
-  crimson:   CrimsonTemplate,
-  forest:    ForestTemplate,
-  navya:     NavyaTemplate,
+  'ats-resume-template':                MinimalTemplate,
+  'corporate-resume-template':          CorporateTemplate,
+  'creative-resume-template':           CreativeTemplate,
+  'software-engineer-resume':           TechTemplate,
+  'modern-professional-resume':         PurpleTemplate,
+  'executive-resume-template':          SlateTemplate,
+  'business-resume-template':           MarineTemplate,
+  'modern-cv-template':                 CrimsonTemplate,
+  'clean-resume-template':              ForestTemplate,
+  'academic-cv-template':               NavyaTemplate,
 };
 
-// ─── All templates list (NavyaTemplate added) ──────────────────
+// ─── All templates list SEO optimized ───────────────────────────
 const TEMPLATES = [
-  { id:'minimal',   name:'Minimal',         tag:'Most Popular', accent:'#6c63ff',
-    desc:'Clean, ATS-friendly, timeless. Suitable for any industry.',    category:'All Roles' },
-  { id:'corporate', name:'Corporate',        tag:'Enterprise',   accent:'#1e3a5f',
-    desc:'Two-column sidebar — ideal for senior & enterprise roles.',     category:'Business' },
-  { id:'creative',  name:'Creative',         tag:'Bold',         accent:'#f59e0b',
-    desc:'Bold gradient header — for designers & marketers.',             category:'Creative' },
-  { id:'tech',      name:'Tech Pro',         tag:'Engineers',    accent:'#059669',
-    desc:'Monospace code-style sections for software engineers.',         category:'Tech' },
-  { id:'purple',    name:'Deep Purple',      tag:'Elegant',      accent:'#4a1942',
-    desc:'Photo-first two-column layout — refined and distinctive.',      category:'All Roles' },
-  { id:'slate',     name:'Executive Slate',  tag:'Executive',    accent:'#475569',
-    desc:'Dark header + gradient accent for senior executives.',          category:'Business' },
-  { id:'marine',    name:'Marine Blue',      tag:'Professional', accent:'#0369a1',
-    desc:'Dark sidebar with card-style experience entries.',              category:'Tech' },
-  { id:'crimson',   name:'Crimson Pro',      tag:'Classic',      accent:'#9f1239',
-    desc:'Centered serif header — elegant & traditional.',               category:'Creative' },
-  { id:'forest',    name:'Forest Green',     tag:'Fresh',        accent:'#166534',
-    desc:'Nature-inspired dark header with green accents.',              category:'All Roles' },
-  { id:'navya',     name:'Navya Classic',    tag:'Academic',     accent:'#1a1a2e',
-    desc:'Clean centered layout — perfect for academia & internships.',   category:'Academic' },
+  {
+    id:'ats-resume-template',
+    name:'ATS Resume Template',
+    tag:'Most Popular',
+    accent:'#6c63ff',
+    desc:'ATS-friendly professional resume template for all industries.',
+    category:'All Roles'
+  },
+
+  {
+    id:'corporate-resume-template',
+    name:'Corporate Resume Template',
+    tag:'Enterprise',
+    accent:'#1e3a5f',
+    desc:'Professional corporate resume for business and enterprise roles.',
+    category:'Business'
+  },
+
+  {
+    id:'creative-resume-template',
+    name:'Creative Resume Template',
+    tag:'Bold',
+    accent:'#f59e0b',
+    desc:'Modern creative CV template for designers and marketers.',
+    category:'Creative'
+  },
+
+  {
+    id:'software-engineer-resume',
+    name:'Software Engineer Resume',
+    tag:'Engineers',
+    accent:'#059669',
+    desc:'ATS-friendly software engineer resume template for tech jobs.',
+    category:'Tech'
+  },
+
+  {
+    id:'modern-professional-resume',
+    name:'Modern Professional Resume',
+    tag:'Elegant',
+    accent:'#4a1942',
+    desc:'Modern two-column professional resume template.',
+    category:'All Roles'
+  },
+
+  {
+    id:'executive-resume-template',
+    name:'Executive Resume Template',
+    tag:'Executive',
+    accent:'#475569',
+    desc:'Executive CV template for senior managers and leaders.',
+    category:'Business'
+  },
+
+  {
+    id:'business-resume-template',
+    name:'Business Resume Template',
+    tag:'Professional',
+    accent:'#0369a1',
+    desc:'Professional business resume template with clean layout.',
+    category:'Tech'
+  },
+
+  {
+    id:'modern-cv-template',
+    name:'Modern CV Template',
+    tag:'Classic',
+    accent:'#9f1239',
+    desc:'Elegant modern CV design for professionals and creatives.',
+    category:'Creative'
+  },
+
+  {
+    id:'clean-resume-template',
+    name:'Clean Resume Template',
+    tag:'Fresh',
+    accent:'#166534',
+    desc:'Clean and minimal resume template with modern styling.',
+    category:'All Roles'
+  },
+
+  {
+    id:'academic-cv-template',
+    name:'Academic CV Template',
+    tag:'Academic',
+    accent:'#1a1a2e',
+    desc:'Academic CV template for students, researchers, and internships.',
+    category:'Academic'
+  },
 ];
 
-const CATEGORIES = ['All', 'All Roles', 'Business', 'Tech', 'Creative', 'Academic'];
-
+const CATEGORIES = [
+  'All',
+  'All Roles',
+  'Business',
+  'Tech',
+  'Creative',
+  'Academic'
+];
 // ─── Preview resume ────────────────────────────────────────────
 const PREVIEW_RESUME = {
   ...DEFAULT_RESUME,
