@@ -1,5 +1,6 @@
 export default function sitemap() {
   return [
+    // ── Static pages ──────────────────────────────────────────────────────
     {
       url: 'https://cvstudio-six.vercel.app/',
       lastModified: new Date(),
@@ -25,7 +26,47 @@ export default function sitemap() {
       lastModified: new Date(),
     },
 
-    // ✅ Template editor pages (manual add)
+    // ── Aggregate calculator index ─────────────────────────────────────────
+    {
+      url: 'https://cvstudio-six.vercel.app/aggregate-calculator',
+      lastModified: new Date(),
+    },
+
+    // ── Aggregate calculator — university pages ───────────────────────────
+    {
+      url: 'https://cvstudio-six.vercel.app/aggregate-calculator/nust-islamabad',
+      lastModified: new Date(),
+    },
+    {
+      url: 'https://cvstudio-six.vercel.app/aggregate-calculator/uet-lahore',
+      lastModified: new Date(),
+    },
+    {
+      url: 'https://cvstudio-six.vercel.app/aggregate-calculator/fast-nuces',
+      lastModified: new Date(),
+    },
+    {
+      url: 'https://cvstudio-six.vercel.app/aggregate-calculator/comsats-university',
+      lastModified: new Date(),
+    },
+    {
+      url: 'https://cvstudio-six.vercel.app/aggregate-calculator/lums-lahore',
+      lastModified: new Date(),
+    },
+    {
+      url: 'https://cvstudio-six.vercel.app/aggregate-calculator/university-of-punjab',
+      lastModified: new Date(),
+    },
+    {
+      url: 'https://cvstudio-six.vercel.app/aggregate-calculator/quaid-i-azam-university',
+      lastModified: new Date(),
+    },
+    {
+      url: 'https://cvstudio-six.vercel.app/aggregate-calculator/aga-khan-university',
+      lastModified: new Date(),
+    },
+
+    // ── Template editor pages ─────────────────────────────────────────────
     {
       url: 'https://cvstudio-six.vercel.app/editor/ats-resume-template',
       lastModified: new Date(),

@@ -12,18 +12,19 @@ import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded';
 import FactCheckRoundedIcon from '@mui/icons-material/FactCheckRounded';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz'; 
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import CalculateRoundedIcon from '@mui/icons-material/CalculateRounded'; // ← NEW
 import { useRouter, usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 const LINKS = [
-  { label: 'Home',      href: '/',          icon: <HomeRoundedIcon sx={{ fontSize: 16 }} /> },
-  { label: 'Dashboard', href: '/dashboard', icon: <DashboardRoundedIcon sx={{ fontSize: 16 }} /> },
-  { label: 'Templates', href: '/template',  icon: <StyleRoundedIcon sx={{ fontSize: 16 }} /> },
-  { label: 'Editor',    href: '/editor/minimal',    icon: <EditNoteRoundedIcon sx={{ fontSize: 16 }} /> },
-  { label: 'ATS Check', href: '/ats',       icon: <FactCheckRoundedIcon sx={{ fontSize: 16 }} /> },
-
-  // NEW CONVERTER PAGE
-  { label: 'Converter', href: '/converter', icon: <SwapHorizIcon sx={{ fontSize: 16 }} /> },
+  { label: 'Home',      href: '/',                      icon: <HomeRoundedIcon      sx={{ fontSize: 16 }} /> },
+  { label: 'Dashboard', href: '/dashboard',             icon: <DashboardRoundedIcon sx={{ fontSize: 16 }} /> },
+  { label: 'Templates', href: '/template',              icon: <StyleRoundedIcon     sx={{ fontSize: 16 }} /> },
+  { label: 'Editor',    href: '/editor/minimal',        icon: <EditNoteRoundedIcon  sx={{ fontSize: 16 }} /> },
+  { label: 'ATS Check', href: '/ats',                   icon: <FactCheckRoundedIcon sx={{ fontSize: 16 }} /> },
+  { label: 'Converter', href: '/converter',             icon: <SwapHorizIcon        sx={{ fontSize: 16 }} /> },
+  // ↓ NEW — aggregate calculator
+  { label: 'Aggregate', href: '/aggregate-calculator',  icon: <CalculateRoundedIcon sx={{ fontSize: 16 }} /> },
 ];
 
 export default function Navbar() {
@@ -72,27 +73,27 @@ export default function Navbar() {
             >
               <AutoAwesomeIcon sx={{ fontSize: 17, color: '#fff' }} />
             </Box>
-           <Typography
-  sx={{
-    fontSize: '2.1rem',
-    fontWeight: 700,
-    lineHeight: 1,
-    letterSpacing: '-0.03em',
-    background: 'linear-gradient(135deg, #a78bfa, #6c63ff, #f59e0b)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    display: 'inline-block',
-  }}
->
-  CVStudio
-</Typography>
+            <Typography
+              sx={{
+                fontSize: '2.1rem',
+                fontWeight: 700,
+                lineHeight: 1,
+                letterSpacing: '-0.03em',
+                background: 'linear-gradient(135deg, #a78bfa, #6c63ff, #f59e0b)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                display: 'inline-block',
+              }}
+            >
+              CVStudio
+            </Typography>
           </Box>
 
           {/* Desktop Nav Links */}
           {!isMobile && (
             <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
               {LINKS.map((l) => {
-                const active = pathname === l.href;
+                const active = pathname === l.href || pathname?.startsWith(l.href + '/');
                 return (
                   <Button
                     key={l.href}
@@ -152,7 +153,7 @@ export default function Navbar() {
         </Toolbar>
       </AppBar>
 
-      {/* Drawer remains unchanged */}
+      {/* Drawer */}
       <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         <Box sx={{ width: 280, p: 2 }}>
           <IconButton onClick={() => setDrawerOpen(false)}>
