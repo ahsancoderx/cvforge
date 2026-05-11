@@ -21,7 +21,7 @@ const LINKS = [
   { label: 'Dashboard', href: '/dashboard',             icon: <DashboardRoundedIcon sx={{ fontSize: 16 }} /> },
   { label: 'Templates', href: '/template',              icon: <StyleRoundedIcon     sx={{ fontSize: 16 }} /> },
   { label: 'Editor',    href: '/editor/minimal',        icon: <EditNoteRoundedIcon  sx={{ fontSize: 16 }} /> },
-  { label: 'ATS Check', href: '/ats',                   icon: <FactCheckRoundedIcon sx={{ fontSize: 16 }} /> },
+  { label: 'ATS Check', href: '/ats-checker',                   icon: <FactCheckRoundedIcon sx={{ fontSize: 16 }} /> },
   { label: 'Converter', href: '/converter',             icon: <SwapHorizIcon        sx={{ fontSize: 16 }} /> },
   // ↓ NEW — aggregate calculator
   { label: 'Aggregate', href: '/aggregate-calculator',  icon: <CalculateRoundedIcon sx={{ fontSize: 16 }} /> },

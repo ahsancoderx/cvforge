@@ -7,35 +7,41 @@ export const metadata = {
   metadataBase: new URL('https://cvstudio-six.vercel.app'),
 
   title: {
-    default: 'CVStudio — Build Professional ATS-Friendly Resumes',
+    default: 'CVStudio — Free AI Resume Builder | ATS-Friendly CV Templates',
     template: '%s | CVStudio',
   },
 
   description:
-    'Create professional, ATS-friendly resumes online. CVStudio helps you design modern CVs, choose templates, optimize for ATS, and convert files easily.',
+    'Create professional ATS-friendly resumes using AI. Choose modern CV templates, optimize for ATS systems, and download your CV instantly as PDF for jobs and internships.',
 
   keywords: [
     'CV builder',
     'resume builder',
     'ATS resume',
+    'AI resume builder',
     'online CV maker',
     'resume templates',
     'CVStudio',
     'resume PDF generator',
+    'ATS friendly resume',
   ],
 
   authors: [{ name: 'CVStudio' }],
   creator: 'CVStudio',
 
+  alternates: {
+    canonical: 'https://cvstudio-six.vercel.app',
+  },
+
   openGraph: {
-    title: 'CVStudio — Build Professional Resumes',
+    title: 'CVStudio — Free AI Resume Builder',
     description:
-      'Design ATS-friendly resumes, choose templates, and download PDF instantly.',
+      'Create ATS-friendly resumes, choose professional templates, and download PDF instantly.',
     url: 'https://cvstudio-six.vercel.app',
     siteName: 'CVStudio',
     images: [
       {
-        url: '/cvlogo.png', 
+        url: '/cvlogo.png',
         width: 1200,
         height: 630,
       },
@@ -46,9 +52,9 @@ export const metadata = {
 
   twitter: {
     card: 'summary_large_image',
-    title: 'CVStudio — Resume Builder',
+    title: 'CVStudio — Free AI Resume Builder',
     description:
-      'Create modern, ATS-friendly resumes in minutes.',
+      'Create modern ATS-friendly resumes in minutes and download instantly.',
     images: ['/cvlogo.png'],
   },
 
@@ -57,6 +63,7 @@ export const metadata = {
     follow: true,
   },
 };
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">

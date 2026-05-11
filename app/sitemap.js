@@ -18,7 +18,7 @@ export default function sitemap() {
       lastModified: new Date(),
     },
     {
-      url: 'https://cvstudio-six.vercel.app/ats',
+      url: 'https://cvstudio-six.vercel.app/ats-checker',
       lastModified: new Date(),
     },
     {
@@ -106,6 +106,31 @@ export default function sitemap() {
     {
       url: 'https://cvstudio-six.vercel.app/editor/academic-cv-template',
       lastModified: new Date(),
+    },
+    {
+      url: "https://cvstudio-six.vercel.app/blog/resume-templates-2026",
+      lastModified: new Date(),
+     
+    },
+    {
+      url: "https://cvstudio-six.vercel.app/blog/ats-resume-guide",
+      lastModified: new Date(),
+      
+    },
+    {
+      url: "https://cvstudio-six.vercel.app/blog/cvstudio-free-career-tools-2026",
+      lastModified: new Date(),
+     
+    },
+    {
+      url: "https://cvstudio-six.vercel.app/blog/ats-checker-guide",
+      lastModified: new Date(),
+      
+    },
+    {
+      url: "https://cvstudio-six.vercel.app/blog/aggregate-calculator-guide",
+      lastModified: new Date(),
+      
     },
   ];
 }
