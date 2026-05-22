@@ -4,6 +4,6 @@ export default function robots() {
       userAgent: '*',
       allow: '/',
     },
-    sitemap: 'https://cvstudio.site//sitemap.xml',
+    sitemap: 'https://cvstudio.site/sitemap.xml',
   };
 }
