@@ -153,7 +153,7 @@ Example:
 
 You can create ATS-friendly resume easily here:
 
-👉 https://cvstudio-six.vercel.app/editor/ats-resume-template
+👉 https://cvstudio.site/editor/ats-resume-template
 
 It helps you:
 

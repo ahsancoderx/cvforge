@@ -106,7 +106,7 @@ CVStudio provides ready-made **ATS-friendly resume templates** for:
 - Executives  
 
 👉 Explore all templates here:  
-https://cvstudio-six.vercel.app/template
+https://cvstudio.site/template
 
 ---
 
@@ -158,6 +158,6 @@ A simple ATS-friendly template can increase your chances of getting interviews b
 
 Use CVStudio free tools and templates:
 
-👉 https://cvstudio-six.vercel.app/template  
+👉 https://cvstudio.site/template  
 
-👉 https://cvstudio-six.vercel.app/editor/ats-resume-template  
+👉 https://cvstudio.site/editor/ats-resume-template  

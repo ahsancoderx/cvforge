@@ -37,7 +37,7 @@ That’s where these tools help you fix everything.
 
 # 📝 ATS-Friendly Resume Templates
 
-👉 https://cvstudio-six.vercel.app/template
+👉 https://cvstudio.site/template
 
 Let’s start with the most important one — your resume.
 
@@ -64,7 +64,7 @@ But these templates are made to pass those systems.
 
 # 🧑‍💻 Minimal Resume Builder
 
-👉 https://cvstudio-six.vercel.app/editor/minimal
+👉 https://cvstudio.site/editor/minimal
 
 Sometimes you just want a simple resume without overthinking design.
 
@@ -82,7 +82,7 @@ It’s especially useful if you are applying for internships or your first job.
 
 # 🧠 ATS Checker Tool
 
-👉 https://cvstudio-six.vercel.app/ats-checker
+👉 https://cvstudio.site/ats-checker
 
 This is one of the most important tools.
 
@@ -102,7 +102,7 @@ A small improvement here can completely change your interview chances.
 
 # 🔄 Resume Converter Tool
 
-👉 https://cvstudio-six.vercel.app/converter
+👉 https://cvstudio.site/converter
 
 Different companies ask for different formats.
 
@@ -120,7 +120,7 @@ It helps you:
 
 # 🎓 Aggregate Calculator (For Students in Pakistan)
 
-👉 https://cvstudio-six.vercel.app/aggregate-calculator
+👉 https://cvstudio.site/aggregate-calculator
 
 If you are a student applying for universities like:
 
@@ -187,11 +187,11 @@ A small change in formatting or keywords can completely change your result.
 
 Here are all tools again:
 
-👉 Resume Templates: https://cvstudio-six.vercel.app/template  
-👉 Minimal Builder: https://cvstudio-six.vercel.app/editor/minimal  
-👉 ATS Checker: https://cvstudio-six.vercel.app/ats-checker  
-👉 Converter: https://cvstudio-six.vercel.app/converter  
-👉 Aggregate Calculator: https://cvstudio-six.vercel.app/aggregate-calculator  
+👉 Resume Templates: https://cvstudio.site/template  
+👉 Minimal Builder: https://cvstudio.site/editor/minimal  
+👉 ATS Checker: https://cvstudio.site/ats-checker  
+👉 Converter: https://cvstudio.site/converter  
+👉 Aggregate Calculator: https://cvstudio.site/aggregate-calculator  
 
 ---
 

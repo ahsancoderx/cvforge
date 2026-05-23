@@ -98,7 +98,7 @@ This saves time and avoids rejection.
 
 You can calculate your exact aggregate here:
 
-👉 https://cvstudio-six.vercel.app/aggregate-calculator
+👉 https://cvstudio.site/aggregate-calculator
 
 It helps you:
 

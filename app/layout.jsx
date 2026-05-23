@@ -4,7 +4,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import theme from '../styles/theme';
 
 export const metadata = {
-  metadataBase: new URL('https://cvstudio-six.vercel.app'),
+  metadataBase: new URL('https://cvstudio.site'),
 
   title: {
     default: 'CVStudio — Free AI Resume Builder | ATS-Friendly CV Templates',
@@ -30,14 +30,14 @@ export const metadata = {
   creator: 'CVStudio',
 
   alternates: {
-    canonical: 'https://cvstudio-six.vercel.app',
+    canonical: 'https://cvstudio.site',
   },
 
   openGraph: {
     title: 'CVStudio — Free AI Resume Builder',
     description:
       'Create ATS-friendly resumes, choose professional templates, and download PDF instantly.',
-    url: 'https://cvstudio-six.vercel.app',
+    url: 'https://cvstudio.site',
     siteName: 'CVStudio',
     images: [
       {

@@ -1,5 +1,5 @@
 // app/aggregate-calculator/[university]/page.jsx
-// ✅ Server Component — no "use client" here
+//  Server Component — no "use client" here
 
 import { universities, getUniversityBySlug } from '@/utils/universityData';
 import UniversityCalculatorClient from './UniversityCalculatorClient';

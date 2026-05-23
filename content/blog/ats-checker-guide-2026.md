@@ -147,7 +147,7 @@ Only add relevant ones.
 Use clean CV formats that ATS can easily read.
 
 👉 Try CVStudio ATS checker tool here:  
-https://cvstudio-six.vercel.app/ats-checker
+https://cvstudio.site/ats-checker
 
 ---
 
@@ -168,9 +168,9 @@ Even small improvements can double your chances.
 
 You can test and improve your resume using CVStudio ATS tools:
 
-👉 https://cvstudio-six.vercel.app/ats-checker  
+👉 https://cvstudio.site/ats-checker  
 
-👉 https://cvstudio-six.vercel.app/editor/ats-resume-template  
+👉 https://cvstudio.site/editor/ats-resume-template  
 
 ---
 
