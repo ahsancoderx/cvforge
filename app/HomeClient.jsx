@@ -132,11 +132,11 @@ const CONVERTERS = [
   },
 ];
 
-// ✅ FIX 1: Objects with { label, href } — not plain strings
+//  FIX 1: Objects with { label, href } — not plain strings
 const FOOTER_LINKS = {
   Product: [
     { label: 'CV Builder',     href: '/editor' },
-    { label: 'Templates',      href: '/template' },
+    { label: 'Templates',      href: '/resume-templates' },
     { label: 'File Converter', href: '/converter' },
     { label: 'Potfolio',      href: 'https://ahsanali-dev.vercel.app/' },
   ],
@@ -393,7 +393,7 @@ function Footer() {
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2 }}>
                 {links.map((link) => (
-                  // ✅ key=link.label (string), href=link.href, children=link.label
+                  //  key=link.label (string), href=link.href, children=link.label
                   <Typography
                     key={link.label}
                     component="a"
@@ -463,7 +463,7 @@ export default function HomePage() {
 
         <Chip
           icon={<StarRoundedIcon sx={{ fontSize: '14px !important', color: '#a78bfa !important' }} />}
-          label="Design CVs Like Canva — Free Forever"
+          label="Design CVs Like Canva  Free Forever"
           sx={{
             mb: 3, px: 1,
             background: 'rgba(108,99,255,0.08)', border: '1px solid rgba(108,99,255,0.3)',
@@ -476,7 +476,7 @@ export default function HomePage() {
           fontSize: { xs: '2rem', sm: '2.8rem', md: '3.8rem' },
           fontWeight: 800, lineHeight: 1.12, mb: 2.5, letterSpacing: '-0.03em', color: '#f0f0f8',
         }}>
-          Build CVs That Get You Into
+          Create ATS-Friendly Resumes Online for Free
           <br />
           <Box component="span" sx={{
             background: 'linear-gradient(135deg, #a78bfa 0%, #6c63ff 50%, #60a5fa 100%)',
@@ -491,14 +491,14 @@ export default function HomePage() {
           maxWidth: 520, mx: 'auto', mb: 4.5, lineHeight: 1.75,
         }}>
           A professional resume studio with live preview, beautiful templates, and ATS-friendly
-          formatting — plus a powerful file converter.
+          formatting plus a powerful file converter.
         </Typography>
 
         <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'center', flexWrap: 'wrap', mb: 6 }}>
           <Button
             variant="contained" size="large"
             endIcon={<ArrowForwardRoundedIcon />}
-            onClick={() => router.push('/template')}
+            onClick={() => router.push('/resume-templates')}
             sx={{
               background: 'linear-gradient(135deg, #6c63ff, #a78bfa)',
               px: 3.5, py: 1.2, borderRadius: '12px',
@@ -512,7 +512,7 @@ export default function HomePage() {
           </Button>
           <Button
             variant="outlined" size="large"
-            onClick={() => router.push('/template')}
+            onClick={() => router.push('/resume-templates')}
             sx={{
               borderColor: 'rgba(255,255,255,0.15)', color: '#d1d5f0',
               px: 3, py: 1.2, borderRadius: '12px',
@@ -678,7 +678,7 @@ export default function HomePage() {
         <Button
           variant="contained" size="large"
           endIcon={<ArrowForwardRoundedIcon />}
-          onClick={() => router.push('/template')}
+          onClick={() => router.push('/resume-templates')}
           sx={{
             background: 'linear-gradient(135deg, #6c63ff, #a78bfa)',
             px: 4, py: 1.3, borderRadius: '12px',

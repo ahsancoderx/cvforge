@@ -1,9 +1,9 @@
 import HomeClient from './HomeClient';
 
 export const metadata = {
-  title: 'Free Resume Builder Online',
+  title: 'Free Resume Builder, ATS Resume Checker & University Aggregate Calculator | CVStudio',
   description:
-    'Create professional resumes for free with CVStudio. Choose modern templates, optimize for ATS, and download instantly as PDF.',
+        'Build ATS-friendly resumes, check ATS scores, calculate university aggregates, and download professional CVs instantly with CVStudio.'
 };
 
 export default function Page() {
