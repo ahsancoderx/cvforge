@@ -19,7 +19,7 @@ import { useState } from 'react';
 const LINKS = [
   { label: 'Home',      href: '/',                      icon: <HomeRoundedIcon      sx={{ fontSize: 16 }} /> },
   { label: 'Dashboard', href: '/dashboard',             icon: <DashboardRoundedIcon sx={{ fontSize: 16 }} /> },
-  { label: 'Templates', href: '/template',              icon: <StyleRoundedIcon     sx={{ fontSize: 16 }} /> },
+  { label: 'Templates', href: '/resume-templates',              icon: <StyleRoundedIcon     sx={{ fontSize: 16 }} /> },
   { label: 'Editor',    href: '/editor/minimal',        icon: <EditNoteRoundedIcon  sx={{ fontSize: 16 }} /> },
   { label: 'ATS Check', href: '/ats-checker',                   icon: <FactCheckRoundedIcon sx={{ fontSize: 16 }} /> },
   { label: 'Converter', href: '/converter',             icon: <SwapHorizIcon        sx={{ fontSize: 16 }} /> },
@@ -62,17 +62,17 @@ export default function Navbar() {
             }}
           >
             <Box
-              className="brand-icon"
-              sx={{
-                width: 32, height: 32, borderRadius: '10px',
-                background: 'linear-gradient(135deg, #6c63ff, #a78bfa)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'transform 0.3s ease',
-                boxShadow: '0 0 14px rgba(108,99,255,0.5)',
-              }}
-            >
-              <AutoAwesomeIcon sx={{ fontSize: 17, color: '#fff' }} />
-            </Box>
+             className="brand-icon"
+             component="img"
+             src="/cvlogo.png" // your logo path from public folder
+             alt="CVStudio Logo"
+             sx={{
+             width: 80,
+             height: 80,
+             objectFit: 'contain',
+             transition: 'transform 0.3s ease',
+  }}
+/>
             <Typography
               sx={{
                 fontSize: '2.1rem',

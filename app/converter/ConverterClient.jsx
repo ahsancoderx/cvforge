@@ -343,9 +343,11 @@ export default function ConverterPage() {
           background: 'linear-gradient(135deg, #fff 20%, #8b8fa8 100%)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
         }}>
-          File Converter
+          Free File Converter — PDF, Word, Excel & Images
         </Typography>
-        <Typography sx={{ color: '#8b8fa8', fontSize: '1rem', maxWidth: 500, mx: 'auto' }}>
+        <Typography 
+        component="h2"
+        sx={{ color: '#8b8fa8', fontSize: '1rem', maxWidth: 500, mx: 'auto' }}>
           Convert PDF, Word, images and text files directly in your browser.
           Files never leave your device.
         </Typography>
@@ -466,7 +468,9 @@ export default function ConverterPage() {
 
             {/* Supported conversions grid */}
             <Box sx={{ mt: 4 }}>
-              <Typography sx={{
+              <Typography 
+              component="h3"
+              sx={{
                 fontWeight: 700, fontSize: '0.72rem', mb: 1.5,
                 textTransform: 'uppercase', letterSpacing: '0.1em', color: '#8b8fa8',
               }}>
@@ -541,7 +545,9 @@ export default function ConverterPage() {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <HistoryIcon sx={{ fontSize: 16, color: '#8b8fa8' }} />
-                  <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#e2e8f0' }}>
+                  <Typography 
+                  component="h3"
+                  sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#e2e8f0' }}>
                     Recent Conversions
                   </Typography>
                   {history.length > 0 && (

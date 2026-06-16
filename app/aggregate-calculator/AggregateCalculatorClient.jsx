@@ -50,33 +50,46 @@ export default function AggregateCalculatorClient() {
             }}
           />
 
-          <Typography
-            component="h1"
-            sx={{
-              fontSize: { xs: '2rem', md: '3.2rem' },
-              fontWeight: 800,
-              color: '#f0f0f8',
-              lineHeight: 1.15,
-              letterSpacing: '-0.025em',
-              mb: 1,
-            }}
-          >
-            University Aggregate
-          </Typography>
-          <Typography
-            sx={{
-              fontSize: { xs: '2rem', md: '3.2rem' },
-              fontWeight: 800,
-              lineHeight: 1.15,
-              letterSpacing: '-0.025em',
-              background: 'linear-gradient(135deg, #a78bfa, #6c63ff)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              mb: 3,
-            }}
-          >
-            Calculator Pakistan
-          </Typography>
+          {/*
+            SEO FIX: the page title is now wrapped in a single real <h1>.
+            Before, "University Aggregate" was an <h1> and "Calculator Pakistan"
+            was a separate <p> — so the full title was never inside one heading.
+            Visually this is 100% identical: same fonts, sizes, gradient, spacing.
+            The two inner Typography elements are just <span>s (display:block)
+            carrying the exact same sx as before.
+          */}
+          <Box component="h1">
+            <Typography
+              component="span"
+              sx={{
+                display: 'block',
+                fontSize: { xs: '2rem', md: '3.2rem' },
+                fontWeight: 800,
+                color: '#f0f0f8',
+                lineHeight: 1.15,
+                letterSpacing: '-0.025em',
+                mb: 1,
+              }}
+            >
+              University Aggregate
+            </Typography>
+            <Typography
+              component="span"
+              sx={{
+                display: 'block',
+                fontSize: { xs: '2rem', md: '3.2rem' },
+                fontWeight: 800,
+                lineHeight: 1.15,
+                letterSpacing: '-0.025em',
+                background: 'linear-gradient(135deg, #a78bfa, #6c63ff)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                mb: 3,
+              }}
+            >
+              Calculator Pakistan
+            </Typography>
+          </Box>
 
           <Typography
             sx={{
@@ -177,8 +190,8 @@ export default function AggregateCalculatorClient() {
                         />
                       </Box>
 
-                      {/* Name */}
-                      <Typography sx={{ color: '#f0f0f8', fontWeight: 700, fontSize: '1.05rem', mb: 0.4, lineHeight: 1.25 }}>
+                      {/* Name — SEO: each university name is a real h3 sub-heading under the page H1 */}
+                      <Typography component="h3" sx={{ color: '#f0f0f8', fontWeight: 700, fontSize: '1.05rem', mb: 0.4, lineHeight: 1.25 }}>
                         {uni.name}
                       </Typography>
                       <Typography sx={{ color: '#8b8fa8', fontSize: '0.73rem', mb: 2.5, lineHeight: 1.4 }}>

@@ -472,7 +472,10 @@ export default function HomePage() {
           }}
         />
 
-        <Typography variant="h1" sx={{
+        <Typography variant="h1"
+        aria-label="Create ATS-Friendly Resumes Online for Free — Trusted by Top Companies"
+         sx={{
+          
           fontSize: { xs: '2rem', sm: '2.8rem', md: '3.8rem' },
           fontWeight: 800, lineHeight: 1.12, mb: 2.5, letterSpacing: '-0.03em', color: '#f0f0f8',
         }}>
@@ -578,7 +581,7 @@ export default function HomePage() {
             fontSize: { xs: '1.7rem', md: '2.4rem' }, fontWeight: 800,
             mb: 1, letterSpacing: '-0.02em', color: '#f0f0f8',
           }}>
-            Everything You Need
+            Free Resume Builder|Everything You Need
           </Typography>
           <Typography sx={{ color: '#8b8fa8', fontSize: '1rem' }}>
             A full studio for your professional story
